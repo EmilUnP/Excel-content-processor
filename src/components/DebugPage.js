@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Copy, Eye, EyeOff, Trash2, RefreshCw, Play, Download } from 'lucide-react';
-import { getDebugData, clearDebugData, translateContent } from '../utils/aiService';
+import { getDebugData, clearDebugData, translateContent } from '../utils/optimizedAiService';
 
 const DebugPage = ({ onBack }) => {
   const [debugData, setDebugData] = useState([]);

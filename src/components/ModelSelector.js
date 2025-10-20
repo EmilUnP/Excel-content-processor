@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAvailableModels, getCurrentModels, setModel } from '../utils/aiService';
+import { getAvailableModels, getCurrentModels, setModel } from '../utils/optimizedAiService';
 import { Settings, Check, Zap, DollarSign, Clock } from 'lucide-react';
 
 const ModelSelector = ({ isOpen, onClose }) => {
