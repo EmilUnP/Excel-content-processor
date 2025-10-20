@@ -8,9 +8,9 @@ import DebugPage from './components/DebugPage';
 import ModelSelector from './components/ModelSelector';
 import ErrorBoundary from './components/ErrorBoundary';
 import { parseExcelFile, exportToExcel, exportToExcelWithFormatting, clearExcelCache } from './utils/optimizedExcelParser';
-import { analyzeContent, analyzeDataset, translateBatchStructured, cancelTranslation, resetTranslationCancellation, clearCaches } from './utils/optimizedAiService';
+import { analyzeContent, analyzeDataset, translateBatchStructured, cancelTranslation, clearCaches } from './utils/optimizedAiService';
 import { API_ENDPOINTS } from './utils/constants';
-import { FileSpreadsheet, Download, Globe, Database, BarChart3, Upload, Settings, X } from 'lucide-react';
+import { Download, Globe, Database, BarChart3, Upload, Settings, X } from 'lucide-react';
 
 function OptimizedApp() {
   // State management with optimized initial values
@@ -382,13 +382,8 @@ function OptimizedApp() {
             }
             columnStats[colIndex].total++;
             
-            // Debug: Log first few items to see column structure
-            if (rowIndex < 3 && colIndex < 5) {
-              console.log(`Row ${rowIndex}, Col ${colIndex}: "${content}" (isQuestion: ${isQuestionColumn}, isVariant: ${isVariantColumn}, shouldTranslate: ${shouldTranslate})`);
-            }
             
-            // ONLY TRANSLATE QUESTION AND VARIANT COLUMNS
-            // const shouldTranslate = true; // Test: translate all columns for now
+            // Only translate Question and Variant columns
             
             if (shouldTranslate && content.length > 5 && // Increased minimum length
                 !/^\d+$/.test(content) && // Not just numbers
@@ -407,11 +402,6 @@ function OptimizedApp() {
             } else {
               filteredContent++;
               columnStats[colIndex].filtered++;
-              if (!shouldTranslate) {
-                console.log(`🚫 Skipped column ${colIndex}:`, content);
-              } else {
-                console.log('🚫 Filtered out content:', content);
-              }
             }
           } else {
             emptyCells++;
@@ -424,42 +414,7 @@ function OptimizedApp() {
       });
 
       const uniqueContent = Array.from(contentToTranslate);
-      console.log(`🔄 Found ${uniqueContent.length} unique pieces of content to translate`);
-      console.log('📊 Current excelData:', { rows: excelData.length, totalCells: excelData.length * (excelData[0]?.length || 0) });
-      console.log('📊 Content analysis:', { 
-        totalCells, 
-        emptyCells, 
-        filteredContent,
-        uniqueContent: uniqueContent.length, 
-        duplicateContent,
-        sampleContent: uniqueContent.slice(0, 10),
-        contentLengths: uniqueContent.map(c => c.length).slice(0, 10)
-      });
-      
-      // Show what we're actually translating
-      console.log('📝 TRANSLATION SUMMARY:');
-      console.log(`- Total cells processed: ${totalCells}`);
-      console.log(`- Empty cells: ${emptyCells}`);
-      console.log(`- Filtered out: ${filteredContent}`);
-      console.log(`- UNIQUE ITEMS TO TRANSLATE: ${uniqueContent.length}`);
-      console.log(`- Only translating Question column (2) and Variant columns (3,5,7,9)`);
-      
-      // Show column breakdown
-      console.log('📊 COLUMN BREAKDOWN:');
-      Object.keys(columnStats).forEach(colIndex => {
-        const stats = columnStats[colIndex];
-        const colName = colIndex === 2 ? 'Question' : 
-                       [3,5,7,9].includes(parseInt(colIndex)) ? 'Variant' : 
-                       [0,1].includes(parseInt(colIndex)) ? 'ID' : 
-                       [4,6,8,10].includes(parseInt(colIndex)) ? 'Code' : 'Other';
-        console.log(`  Column ${colIndex} (${colName}): ${stats.translated} translated, ${stats.filtered} filtered, ${stats.empty} empty`);
-      });
-      
-      // Show some examples of what's being translated
-      console.log('📝 Sample content being translated:');
-      uniqueContent.slice(0, 10).forEach((content, index) => {
-        console.log(`${index + 1}. "${content}" (${content.length} chars)`);
-      });
+      console.log(`📊 Found ${uniqueContent.length} unique items to translate from ${totalCells} total cells`);
 
       if (isTranslationStopped) {
         // Translation stopped
@@ -468,12 +423,10 @@ function OptimizedApp() {
       }
 
       console.log('🔄 Starting translation process...');
-      console.log('📊 Content to translate:', uniqueContent.length, 'unique items');
       
       // Calculate correct number of batches (AI service uses 80 items per batch)
       const BATCH_SIZE = 80;
       const totalBatches = Math.ceil(uniqueContent.length / BATCH_SIZE);
-      console.log(`📊 Will process ${totalBatches} batches of ${BATCH_SIZE} items each`);
       
       setTranslationProgress({ current: 0, total: totalBatches });
       setLoadingMessage(`Translating to ${languageNames[targetLanguage] || 'English'}...`);

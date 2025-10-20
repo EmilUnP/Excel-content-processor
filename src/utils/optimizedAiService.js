@@ -151,7 +151,6 @@ export const analyzeContent = async (content) => {
   const cacheKey = `analysis_${content.length}_${content.slice(0, 50)}`;
   const cached = analysisCache.get(cacheKey);
   if (cached) {
-    console.log('📦 Using cached analysis');
     return cached;
   }
 
@@ -214,7 +213,6 @@ export const analyzeContent = async (content) => {
 
 // Optimized batch translation with aggressive batching
 export const translateBatchStructured = async (contentArray, targetLanguage = 'en', abortSignal = null, progressCallback = null) => {
-  console.log('🚀 Optimized batch translation:', { count: contentArray.length, targetLanguage });
   
   translationCancelled = false;
   
@@ -258,7 +256,6 @@ export const translateBatchStructured = async (contentArray, targetLanguage = 'e
     const batch = cleanedContent.slice(i, i + BATCH_SIZE);
     const currentBatch = Math.floor(i/BATCH_SIZE) + 1;
     const totalBatches = Math.ceil(cleanedContent.length/BATCH_SIZE);
-    console.log(`🔄 Processing batch ${currentBatch}/${totalBatches} (${batch.length} items)`);
     
     // Call progress callback if provided
     if (progressCallback) {
@@ -531,10 +528,6 @@ export const cancelTranslation = () => {
   console.log('🛑 Translation cancellation requested');
 };
 
-export const resetTranslationCancellation = () => {
-  translationCancelled = false;
-  console.log('🔄 Translation cancellation reset');
-};
 
 // Cache management
 export const clearCaches = () => {
