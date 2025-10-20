@@ -345,7 +345,6 @@ function OptimizedApp() {
 
     setIsLoading(true);
     setIsTranslationStopped(false);
-    resetTranslationCancellation();
     
     // Start session for translation
     await startSession(`translation_${targetLanguage}`);
@@ -360,9 +359,6 @@ function OptimizedApp() {
       // Collect unique content for translation
       const contentToTranslate = new Set();
       let totalCells = 0;
-      let emptyCells = 0;
-      let duplicateContent = 0;
-      let filteredContent = 0;
       let columnStats = {}; // Track content by column
       
       excelData.forEach((row, rowIndex) => {
@@ -393,18 +389,14 @@ function OptimizedApp() {
                 content !== 'yes' && content !== 'no' && // Not yes/no
                 !content.match(/^[A-Za-z0-9\s]{1,5}$/) // Not short alphanumeric strings
             ) {
-              if (contentToTranslate.has(content)) {
-                duplicateContent++;
-              } else {
+              if (!contentToTranslate.has(content)) {
                 contentToTranslate.add(content);
                 columnStats[colIndex].translated++;
               }
             } else {
-              filteredContent++;
               columnStats[colIndex].filtered++;
             }
           } else {
-            emptyCells++;
             if (!columnStats[colIndex]) {
               columnStats[colIndex] = { total: 0, translated: 0, filtered: 0, empty: 0 };
             }
@@ -591,7 +583,7 @@ function OptimizedApp() {
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-6 space-y-4 lg:space-y-0">
             <div className="flex items-center">
               <div className="h-12 w-12 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg mr-4">
-                <FileSpreadsheet className="h-7 w-7 text-white" />
+                <Database className="h-7 w-7 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
@@ -732,7 +724,7 @@ function OptimizedApp() {
             <div className="bg-white rounded-2xl shadow-xl p-8 max-w-4xl mx-auto">
               <div className="mb-8">
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-6">
-                  <FileSpreadsheet className="h-10 w-10 text-white" />
+                  <Database className="h-10 w-10 text-white" />
                 </div>
                 <h2 className="text-4xl font-bold text-gray-900 mb-4">
                   Excel Content Processor
@@ -752,7 +744,7 @@ function OptimizedApp() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800 flex items-center">
-                    <FileSpreadsheet className="h-5 w-5 mr-2 text-blue-600" />
+                    <Database className="h-5 w-5 mr-2 text-blue-600" />
                     Processed Data
                   </h2>
                   <p className="text-slate-600 mt-1 font-medium">
