@@ -7,8 +7,8 @@ import LanguageSelector from './components/LanguageSelector';
 import DebugPage from './components/DebugPage';
 import ModelSelector from './components/ModelSelector';
 import ErrorBoundary from './components/ErrorBoundary';
-import { parseExcelFile, exportToExcel } from './utils/optimizedExcelParser';
-import { analyzeContent, translateBatchStructured, cancelTranslation, resetTranslationCancellation } from './utils/optimizedAiService';
+import { parseExcelFile, exportToExcel, clearExcelCache } from './utils/optimizedExcelParser';
+import { analyzeContent, translateBatchStructured, cancelTranslation, resetTranslationCancellation, clearCaches } from './utils/optimizedAiService';
 import { API_ENDPOINTS } from './utils/constants';
 import { FileSpreadsheet, Download, Globe, Database, BarChart3, Upload, Settings, X } from 'lucide-react';
 
@@ -110,13 +110,17 @@ function OptimizedApp() {
       const response = await fetch(API_ENDPOINTS.LOAD_DATA);
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 Checking saved data:', { hasData: !!data.data, currentData: !!excelData });
         if (data.success && data.data && !excelData) {
           // Only load saved data if no current data exists
+          console.log('📥 Loading saved data:', data.data.length, 'rows');
           setExcelData(data.data);
           toast.success('Saved data loaded successfully!', {
             duration: 2000,
             position: 'top-right'
           });
+        } else {
+          console.log('🚫 Not loading saved data - either no data or current data exists');
         }
       }
     } catch (error) {
@@ -130,13 +134,19 @@ function OptimizedApp() {
   const handleFileUpload = useCallback(async (file) => {
     setIsLoading(true);
     try {
+      // Clear Excel cache to ensure fresh file parsing
+      clearExcelCache();
+      console.log('🧹 Cleared Excel cache');
+      
       const parsedData = await parseExcelFile(file);
+      console.log('📤 File upload parsed:', parsedData.metadata);
       setExcelData(parsedData.data);
       
       // Clear old saved data when uploading new file
       try {
-        await fetch(API_ENDPOINTS.CLEAR_DATA, { method: 'POST' });
-        console.log('🧹 Cleared old saved data');
+        const clearResponse = await fetch(API_ENDPOINTS.CLEAR_DATA, { method: 'POST' });
+        const clearResult = await clearResponse.json();
+        console.log('🧹 Cleared old saved data:', clearResult);
       } catch (error) {
         console.log('Could not clear old data:', error);
       }
@@ -345,6 +355,7 @@ function OptimizedApp() {
 
       const uniqueContent = Array.from(contentToTranslate);
       console.log(`🔄 Found ${uniqueContent.length} unique pieces of content to translate`);
+      console.log('📊 Current excelData:', { rows: excelData.length, totalCells: excelData.length * (excelData[0]?.length || 0) });
 
       if (isTranslationStopped) {
         // Translation stopped
@@ -469,7 +480,13 @@ function OptimizedApp() {
   }, []);
 
   // Initial data load
+  // Initialize app with cache clearing
   useEffect(() => {
+    // Clear all caches on app startup to ensure fresh state
+    clearCaches();
+    clearExcelCache();
+    console.log('🧹 Cleared all caches on app startup');
+    
     checkForSavedData();
   }, [checkForSavedData]);
 
