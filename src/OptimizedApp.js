@@ -25,6 +25,7 @@ function OptimizedApp() {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [isTranslationStopped, setIsTranslationStopped] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Processing data...');
+  const [translationProgress, setTranslationProgress] = useState({ current: 0, total: 0 });
 
   // Refs for performance optimization
   const translationAbortController = useRef(null);
@@ -175,6 +176,7 @@ function OptimizedApp() {
 
     setIsLoading(true);
     setLoadingMessage('Analyzing content...');
+    setTranslationProgress({ current: 0, total: 0 });
     
     // Clear any existing analysis timeout
     if (analysisTimeoutRef.current) {
@@ -279,10 +281,53 @@ function OptimizedApp() {
       console.log('🔄 Starting translation process...');
       console.log('📊 Content to translate:', uniqueContent.length, 'unique items');
       
-      // Translate with abort signal
-      const translations = await translateBatchStructured(uniqueContent, targetLanguage, translationAbortController.current.signal);
+      // Calculate batch size and total batches
+      const batchSize = 20; // Process 20 items per batch
+      const totalBatches = Math.ceil(uniqueContent.length / batchSize);
       
-      console.log('✅ Translation completed:', translations.length, 'translations received');
+      console.log(`📦 Processing ${totalBatches} batches of ${batchSize} items each`);
+      
+      // Initialize progress
+      setTranslationProgress({ current: 0, total: totalBatches });
+      
+      const allTranslations = [];
+      
+      // Process batches with progress tracking
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        if (isTranslationStopped) {
+          console.log('🛑 Translation stopped by user');
+          toast('Translation stopped', { duration: 2000 });
+          return;
+        }
+        
+        const startIndex = batchIndex * batchSize;
+        const endIndex = Math.min(startIndex + batchSize, uniqueContent.length);
+        const batchContent = uniqueContent.slice(startIndex, endIndex);
+        
+        console.log(`🔄 Processing batch ${batchIndex + 1}/${totalBatches} (${batchContent.length} items)`);
+        
+        // Update progress
+        setTranslationProgress({ current: batchIndex + 1, total: totalBatches });
+        setLoadingMessage(`Translating to ${languageNames[targetLanguage] || 'English'}... (Batch ${batchIndex + 1}/${totalBatches})`);
+        
+        // Translate this batch
+        const batchTranslations = await translateBatchStructured(
+          batchContent, 
+          targetLanguage, 
+          translationAbortController.current.signal
+        );
+        
+        allTranslations.push(...batchTranslations);
+        
+        console.log(`✅ Batch ${batchIndex + 1}/${totalBatches} completed`);
+        
+        // Small delay between batches to prevent API rate limiting and show progress
+        if (batchIndex < totalBatches - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      console.log('✅ All batches completed:', allTranslations.length, 'translations received');
       
       if (isTranslationStopped) {
         // Translation stopped
@@ -293,7 +338,7 @@ function OptimizedApp() {
       // Create translation map
       const translationMap = new Map();
       uniqueContent.forEach((content, index) => {
-        translationMap.set(content, translations[index] || content);
+        translationMap.set(content, allTranslations[index] || content);
       });
 
       console.log('🔄 Updating data with translations...');
@@ -483,9 +528,27 @@ function OptimizedApp() {
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 bg-gradient-to-br from-slate-900/20 to-blue-900/20 backdrop-blur-sm flex items-center justify-center z-40 pointer-events-none">
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 flex items-center space-x-4 shadow-2xl pointer-events-auto border border-white/20">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 flex flex-col items-center space-y-4 shadow-2xl pointer-events-auto border border-white/20 max-w-md">
             <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
-            <span className="text-slate-700 font-semibold text-lg">{loadingMessage}</span>
+            <div className="text-center">
+              <span className="text-slate-700 font-semibold text-lg">{loadingMessage}</span>
+              {translationProgress.total > 0 && (
+                <div className="mt-3 space-y-2">
+                  <div className="text-sm text-slate-600">
+                    Progress: {translationProgress.current} of {translationProgress.total} batches
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(translationProgress.current / translationProgress.total) * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {Math.round((translationProgress.current / translationProgress.total) * 100)}% complete
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
