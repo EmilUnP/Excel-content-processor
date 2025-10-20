@@ -356,7 +356,12 @@ function OptimizedApp() {
           if (cell.cleaned && cell.cleaned.trim()) {
             const content = cell.cleaned.trim();
             // Filter out very short content, numbers only, or common words
-            if (content.length > 2 && 
+            // Also, only translate Question column (index 2) and Variant columns (3,5,7,9)
+            const isQuestionColumn = colIndex === 2; // Question column
+            const isVariantColumn = colIndex === 3 || colIndex === 5 || colIndex === 7 || colIndex === 9; // Variant columns
+            const shouldTranslate = isQuestionColumn || isVariantColumn;
+            
+            if (shouldTranslate && content.length > 2 && 
                 !/^\d+$/.test(content) && // Not just numbers
                 !/^[A-Za-z]{1,2}$/.test(content) && // Not just 1-2 letters
                 content !== '0' && content !== '1' && // Not just 0 or 1
@@ -369,7 +374,11 @@ function OptimizedApp() {
               contentToTranslate.add(content);
             } else {
               filteredContent++;
-              console.log('🚫 Filtered out content:', content);
+              if (!shouldTranslate) {
+                console.log(`🚫 Skipped column ${colIndex}:`, content);
+              } else {
+                console.log('🚫 Filtered out content:', content);
+              }
             }
           } else {
             emptyCells++;
@@ -386,7 +395,14 @@ function OptimizedApp() {
         filteredContent,
         uniqueContent: uniqueContent.length, 
         duplicateContent,
-        sampleContent: uniqueContent.slice(0, 5)
+        sampleContent: uniqueContent.slice(0, 10),
+        contentLengths: uniqueContent.map(c => c.length).slice(0, 10)
+      });
+      
+      // Show some examples of what's being translated
+      console.log('📝 Sample content being translated:');
+      uniqueContent.slice(0, 10).forEach((content, index) => {
+        console.log(`${index + 1}. "${content}" (${content.length} chars)`);
       });
 
       if (isTranslationStopped) {
