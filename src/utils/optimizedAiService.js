@@ -342,6 +342,176 @@ IMPORTANT RULES:
   return allTranslations;
 };
 
+// Comprehensive dataset analysis for data quality
+export const analyzeDataset = (data) => {
+  if (!data || data.length === 0) {
+    return {
+      totalQuestions: 0,
+      dataQuality: 'No data',
+      issues: ['No data to analyze'],
+      recommendations: ['Upload data to analyze']
+    };
+  }
+
+  const analysis = {
+    totalQuestions: data.length,
+    dataQuality: 'good',
+    issues: [],
+    recommendations: [],
+    statistics: {
+      questionsWithAllVariants: 0,
+      questionsWithCorrectAnswer: 0,
+      questionsWithMissingVariants: 0,
+      questionsWithInvalidCodes: 0,
+      questionsWithEmptyContent: 0,
+      questionsWithDuplicateVariants: 0,
+      questionsWithHTML: 0,
+      questionsWithEntities: 0
+    },
+    detailedIssues: []
+  };
+
+  // Analyze each question
+  data.forEach((row, rowIndex) => {
+    const question = row[2]?.cleaned || ''; // Question column
+    const variants = [
+      row[3]?.cleaned || '', // Variant 1
+      row[5]?.cleaned || '', // Variant 2
+      row[7]?.cleaned || '', // Variant 3
+      row[9]?.cleaned || ''  // Variant 4
+    ];
+    const codes = [
+      row[4]?.cleaned || '', // Code 1
+      row[6]?.cleaned || '', // Code 2
+      row[8]?.cleaned || '', // Code 3
+      row[10]?.cleaned || '' // Code 4
+    ];
+
+    // Check if question exists
+    if (!question || question.trim() === '') {
+      analysis.statistics.questionsWithEmptyContent++;
+      analysis.detailedIssues.push({
+        row: rowIndex + 1,
+        type: 'Empty Question',
+        description: 'Question is empty or missing',
+        severity: 'high'
+      });
+      return;
+    }
+
+    // Check for HTML content
+    if (row[2]?.hasHtml) analysis.statistics.questionsWithHTML++;
+    if (row[2]?.hasEntities) analysis.statistics.questionsWithEntities++;
+
+    // Check variants
+    const nonEmptyVariants = variants.filter(v => v && v.trim() !== '');
+    const nonEmptyCodes = codes.filter(c => c && c.trim() !== '');
+
+    // Check if all variants are present
+    if (nonEmptyVariants.length < 4) {
+      analysis.statistics.questionsWithMissingVariants++;
+      analysis.detailedIssues.push({
+        row: rowIndex + 1,
+        type: 'Missing Variants',
+        description: `Only ${nonEmptyVariants.length}/4 variants present`,
+        severity: 'medium',
+        details: `Missing variants: ${variants.map((v, i) => v ? '' : `Variant ${i+1}`).filter(Boolean).join(', ')}`
+      });
+    } else {
+      analysis.statistics.questionsWithAllVariants++;
+    }
+
+    // Check for duplicate variants
+    const uniqueVariants = new Set(nonEmptyVariants);
+    if (uniqueVariants.size < nonEmptyVariants.length) {
+      analysis.statistics.questionsWithDuplicateVariants++;
+      analysis.detailedIssues.push({
+        row: rowIndex + 1,
+        type: 'Duplicate Variants',
+        description: 'Some answer variants are identical',
+        severity: 'medium'
+      });
+    }
+
+    // Check answer codes
+    const validCodes = nonEmptyCodes.filter(c => c === '0' || c === '1');
+    const hasCorrectAnswer = validCodes.includes('1');
+    
+    if (validCodes.length !== nonEmptyCodes.length) {
+      analysis.statistics.questionsWithInvalidCodes++;
+      analysis.detailedIssues.push({
+        row: rowIndex + 1,
+        type: 'Invalid Answer Codes',
+        description: 'Answer codes should be 0 or 1 only',
+        severity: 'high',
+        details: `Invalid codes: ${nonEmptyCodes.filter(c => c !== '0' && c !== '1').join(', ')}`
+      });
+    }
+
+    if (!hasCorrectAnswer && nonEmptyCodes.length > 0) {
+      analysis.detailedIssues.push({
+        row: rowIndex + 1,
+        type: 'No Correct Answer',
+        description: 'No answer marked as correct (no code = 1)',
+        severity: 'high'
+      });
+    } else if (hasCorrectAnswer) {
+      analysis.statistics.questionsWithCorrectAnswer++;
+    }
+
+    // Check for multiple correct answers
+    const correctAnswers = validCodes.filter(c => c === '1').length;
+    if (correctAnswers > 1) {
+      analysis.detailedIssues.push({
+        row: rowIndex + 1,
+        type: 'Multiple Correct Answers',
+        description: `${correctAnswers} answers marked as correct`,
+        severity: 'medium'
+      });
+    }
+  });
+
+  // Calculate data quality score
+  const totalIssues = analysis.detailedIssues.length;
+  const highSeverityIssues = analysis.detailedIssues.filter(i => i.severity === 'high').length;
+  
+  if (highSeverityIssues > analysis.totalQuestions * 0.1) {
+    analysis.dataQuality = 'poor';
+  } else if (totalIssues > analysis.totalQuestions * 0.2) {
+    analysis.dataQuality = 'fair';
+  }
+
+  // Generate recommendations
+  if (analysis.statistics.questionsWithMissingVariants > 0) {
+    analysis.recommendations.push(`Add missing variants for ${analysis.statistics.questionsWithMissingVariants} questions`);
+  }
+  if (analysis.statistics.questionsWithInvalidCodes > 0) {
+    analysis.recommendations.push(`Fix invalid answer codes for ${analysis.statistics.questionsWithInvalidCodes} questions`);
+  }
+  if (analysis.statistics.questionsWithDuplicateVariants > 0) {
+    analysis.recommendations.push(`Remove duplicate variants for ${analysis.statistics.questionsWithDuplicateVariants} questions`);
+  }
+  if (analysis.statistics.questionsWithEmptyContent > 0) {
+    analysis.recommendations.push(`Add missing questions for ${analysis.statistics.questionsWithEmptyContent} rows`);
+  }
+
+  // Generate summary issues
+  if (analysis.statistics.questionsWithMissingVariants > 0) {
+    analysis.issues.push(`${analysis.statistics.questionsWithMissingVariants} questions missing variants`);
+  }
+  if (analysis.statistics.questionsWithInvalidCodes > 0) {
+    analysis.issues.push(`${analysis.statistics.questionsWithInvalidCodes} questions have invalid answer codes`);
+  }
+  if (analysis.statistics.questionsWithDuplicateVariants > 0) {
+    analysis.issues.push(`${analysis.statistics.questionsWithDuplicateVariants} questions have duplicate variants`);
+  }
+  if (analysis.statistics.questionsWithEmptyContent > 0) {
+    analysis.issues.push(`${analysis.statistics.questionsWithEmptyContent} questions are empty`);
+  }
+
+  return analysis;
+};
+
 // Fallback analysis function
 const getFallbackAnalysis = (content) => {
   return {

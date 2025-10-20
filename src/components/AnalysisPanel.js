@@ -104,6 +104,96 @@ const AnalysisPanel = ({ analysis, isVisible, onClose }) => {
               </div>
             </div>
 
+          {/* Comprehensive Dataset Analysis */}
+          {analysis.datasetAnalysis && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Code className="h-5 w-5 mr-2 text-purple-500" />
+                Question Data Quality Analysis
+              </h3>
+              
+              {/* Data Quality Score */}
+              <div className={`p-4 rounded-lg border-2 mb-4 ${getQualityColor(analysis.datasetAnalysis.dataQuality)}`}>
+                <div className="flex items-center space-x-3">
+                  {getQualityIcon(analysis.datasetAnalysis.dataQuality)}
+                  <span className="text-lg font-medium">
+                    {getQualityText(analysis.datasetAnalysis.dataQuality)} - {analysis.datasetAnalysis.totalQuestions} Questions
+                  </span>
+                </div>
+              </div>
+
+              {/* Statistics Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <div className="text-xl font-bold text-green-600">{analysis.datasetAnalysis.statistics.questionsWithAllVariants}</div>
+                  <div className="text-xs text-green-800">Complete Questions</div>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <div className="text-xl font-bold text-blue-600">{analysis.datasetAnalysis.statistics.questionsWithCorrectAnswer}</div>
+                  <div className="text-xs text-blue-800">With Correct Answer</div>
+                </div>
+                <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                  <div className="text-xl font-bold text-red-600">{analysis.datasetAnalysis.statistics.questionsWithMissingVariants}</div>
+                  <div className="text-xs text-red-800">Missing Variants</div>
+                </div>
+                <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                  <div className="text-xl font-bold text-orange-600">{analysis.datasetAnalysis.statistics.questionsWithInvalidCodes}</div>
+                  <div className="text-xs text-orange-800">Invalid Codes</div>
+                </div>
+              </div>
+
+              {/* Issues List */}
+              {analysis.datasetAnalysis.issues && analysis.datasetAnalysis.issues.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium text-gray-900">Issues Found:</h4>
+                  {analysis.datasetAnalysis.issues.map((issue, index) => (
+                    <div key={index} className="bg-red-50 p-3 rounded-lg border border-red-200">
+                      <div className="font-medium text-red-800">{issue}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Detailed Issues */}
+              {analysis.datasetAnalysis.detailedIssues && analysis.datasetAnalysis.detailedIssues.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Detailed Issues (First 10):</h4>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {analysis.datasetAnalysis.detailedIssues.slice(0, 10).map((issue, index) => (
+                      <div key={index} className={`p-3 rounded-lg border ${
+                        issue.severity === 'high' ? 'bg-red-50 border-red-200' :
+                        issue.severity === 'medium' ? 'bg-yellow-50 border-yellow-200' :
+                        'bg-blue-50 border-blue-200'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-gray-900">
+                            Row {issue.row}: {issue.type}
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            issue.severity === 'high' ? 'bg-red-200 text-red-800' :
+                            issue.severity === 'medium' ? 'bg-yellow-200 text-yellow-800' :
+                            'bg-blue-200 text-blue-800'
+                          }`}>
+                            {issue.severity}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">{issue.description}</div>
+                        {issue.details && (
+                          <div className="text-xs text-gray-500 mt-1">{issue.details}</div>
+                        )}
+                      </div>
+                    ))}
+                    {analysis.datasetAnalysis.detailedIssues.length > 10 && (
+                      <div className="text-sm text-gray-500 text-center py-2">
+                        ... and {analysis.datasetAnalysis.detailedIssues.length - 10} more issues
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Data Quality Issues */}
           {analysis.dataQuality && (
             <div className="mb-6">

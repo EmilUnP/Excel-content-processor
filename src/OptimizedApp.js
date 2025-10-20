@@ -8,7 +8,7 @@ import DebugPage from './components/DebugPage';
 import ModelSelector from './components/ModelSelector';
 import ErrorBoundary from './components/ErrorBoundary';
 import { parseExcelFile, exportToExcel, exportToExcelWithFormatting, clearExcelCache } from './utils/optimizedExcelParser';
-import { analyzeContent, translateBatchStructured, cancelTranslation, resetTranslationCancellation, clearCaches } from './utils/optimizedAiService';
+import { analyzeContent, analyzeDataset, translateBatchStructured, cancelTranslation, resetTranslationCancellation, clearCaches } from './utils/optimizedAiService';
 import { API_ENDPOINTS } from './utils/constants';
 import { FileSpreadsheet, Download, Globe, Database, BarChart3, Upload, Settings, X } from 'lucide-react';
 
@@ -276,7 +276,10 @@ function OptimizedApp() {
         toast.warning('Analysis taking longer than expected...', { duration: 3000 });
       }, 5000);
 
-      // Sample data for analysis (first 1000 rows for performance)
+      // Run comprehensive dataset analysis
+      const datasetAnalysis = analyzeDataset(excelData);
+      
+      // Sample data for AI analysis (first 1000 rows for performance)
       const sampleData = excelData.slice(0, 1000);
       const allContent = sampleData.map(row => 
         row.map(cell => cell.cleaned).join(' ')
@@ -295,6 +298,7 @@ function OptimizedApp() {
       
       const comprehensiveAnalysis = {
         dataQuality: dataAnalysis,
+        datasetAnalysis: datasetAnalysis,
         contentQuality: aiAnalysis,
         summary: {
           totalCells: dataStats.totalCells,
@@ -302,10 +306,14 @@ function OptimizedApp() {
           htmlCells: dataAnalysis.htmlCells,
           entityCells: dataAnalysis.entityCells,
           overallQuality: aiAnalysis.quality,
-          totalRows: excelData.length
+          totalRows: excelData.length,
+          dataQualityScore: datasetAnalysis.dataQuality,
+          totalIssues: datasetAnalysis.issues.length,
+          criticalIssues: datasetAnalysis.detailedIssues.filter(i => i.severity === 'high').length
         },
         recommendations: [
           ...aiAnalysis.suggestions,
+          ...datasetAnalysis.recommendations,
           ...(dataAnalysis.emptyCells > 0 ? [`${dataAnalysis.emptyCells} empty cells need attention`] : []),
           ...(dataAnalysis.htmlCells > 0 ? [`${dataAnalysis.htmlCells} cells contain HTML`] : []),
           ...(dataAnalysis.entityCells > 0 ? [`${dataAnalysis.entityCells} cells contain HTML entities`] : [])
