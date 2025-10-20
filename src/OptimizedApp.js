@@ -103,14 +103,15 @@ function OptimizedApp() {
     };
   }, [sessionId, stopSession]);
 
-  // Optimized data loading
+  // Optimized data loading - only load if no data exists
   const checkForSavedData = useCallback(async () => {
     setIsCheckingSavedData(true);
     try {
       const response = await fetch(API_ENDPOINTS.LOAD_DATA);
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data) {
+        if (data.success && data.data && !excelData) {
+          // Only load saved data if no current data exists
           setExcelData(data.data);
           toast.success('Saved data loaded successfully!', {
             duration: 2000,
@@ -123,7 +124,7 @@ function OptimizedApp() {
     } finally {
       setIsCheckingSavedData(false);
     }
-  }, []);
+  }, [excelData]);
 
   // Optimized file upload
   const handleFileUpload = useCallback(async (file) => {
@@ -131,6 +132,15 @@ function OptimizedApp() {
     try {
       const parsedData = await parseExcelFile(file);
       setExcelData(parsedData.data);
+      
+      // Clear old saved data when uploading new file
+      try {
+        await fetch(API_ENDPOINTS.CLEAR_DATA, { method: 'POST' });
+        console.log('🧹 Cleared old saved data');
+      } catch (error) {
+        console.log('Could not clear old data:', error);
+      }
+      
       console.log('Excel data parsed successfully:', parsedData.metadata);
       
       toast.success(`File loaded: ${parsedData.metadata.totalRows} rows, ${parsedData.metadata.totalColumns} columns`, {
@@ -345,53 +355,18 @@ function OptimizedApp() {
       console.log('🔄 Starting translation process...');
       console.log('📊 Content to translate:', uniqueContent.length, 'unique items');
       
-      // Calculate batch size and total batches
-      const batchSize = 20; // Process 20 items per batch
-      const totalBatches = Math.ceil(uniqueContent.length / batchSize);
+      // Let AI service handle batching (it uses 80 items per batch)
+      setTranslationProgress({ current: 0, total: 1 });
+      setLoadingMessage(`Translating to ${languageNames[targetLanguage] || 'English'}...`);
       
-      console.log(`📦 Processing ${totalBatches} batches of ${batchSize} items each`);
+      // Translate all content at once - AI service will handle batching internally
+      const allTranslations = await translateBatchStructured(
+        uniqueContent, 
+        targetLanguage, 
+        translationAbortController.current.signal
+      );
       
-      // Initialize progress
-      setTranslationProgress({ current: 0, total: totalBatches });
-      
-      const allTranslations = [];
-      
-      // Process batches with progress tracking
-      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-        if (isTranslationStopped) {
-          console.log('🛑 Translation stopped by user');
-          toast('Translation stopped', { duration: 2000 });
-          return;
-        }
-        
-        const startIndex = batchIndex * batchSize;
-        const endIndex = Math.min(startIndex + batchSize, uniqueContent.length);
-        const batchContent = uniqueContent.slice(startIndex, endIndex);
-        
-        console.log(`🔄 Processing batch ${batchIndex + 1}/${totalBatches} (${batchContent.length} items)`);
-        
-        // Update progress
-        setTranslationProgress({ current: batchIndex + 1, total: totalBatches });
-        setLoadingMessage(`Translating to ${languageNames[targetLanguage] || 'English'}... (Batch ${batchIndex + 1}/${totalBatches})`);
-        
-        // Translate this batch
-        const batchTranslations = await translateBatchStructured(
-          batchContent, 
-          targetLanguage, 
-          translationAbortController.current.signal
-        );
-        
-        allTranslations.push(...batchTranslations);
-        
-        console.log(`✅ Batch ${batchIndex + 1}/${totalBatches} completed`);
-        
-        // Small delay between batches to prevent API rate limiting and show progress
-        if (batchIndex < totalBatches - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-      
-      console.log('✅ All batches completed:', allTranslations.length, 'translations received');
+      console.log('✅ Translation completed:', allTranslations.length, 'translations received');
       
       if (isTranslationStopped) {
         // Translation stopped
