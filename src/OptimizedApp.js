@@ -356,18 +356,18 @@ function OptimizedApp() {
           if (cell.cleaned && cell.cleaned.trim()) {
             const content = cell.cleaned.trim();
             // Filter out very short content, numbers only, or common words
-            // Also, only translate Question column (index 2) and Variant columns (3,5,7,9)
+            // Only translate Question column (index 2) and Variant columns (3,5,7,9)
             const isQuestionColumn = colIndex === 2; // Question column
             const isVariantColumn = colIndex === 3 || colIndex === 5 || colIndex === 7 || colIndex === 9; // Variant columns
-            // const shouldTranslate = isQuestionColumn || isVariantColumn;
+            const shouldTranslate = isQuestionColumn || isVariantColumn;
             
             // Debug: Log first few items to see column structure
             if (rowIndex < 3 && colIndex < 5) {
-              console.log(`Row ${rowIndex}, Col ${colIndex}: "${content}" (isQuestion: ${isQuestionColumn}, isVariant: ${isVariantColumn})`);
+              console.log(`Row ${rowIndex}, Col ${colIndex}: "${content}" (isQuestion: ${isQuestionColumn}, isVariant: ${isVariantColumn}, shouldTranslate: ${shouldTranslate})`);
             }
             
-            // TEMPORARILY DISABLE COLUMN FILTERING TO TEST
-            const shouldTranslate = true; // Test: translate all columns for now
+            // ONLY TRANSLATE QUESTION AND VARIANT COLUMNS
+            // const shouldTranslate = true; // Test: translate all columns for now
             
             if (shouldTranslate && content.length > 5 && // Increased minimum length
                 !/^\d+$/.test(content) && // Not just numbers
@@ -407,6 +407,14 @@ function OptimizedApp() {
         sampleContent: uniqueContent.slice(0, 10),
         contentLengths: uniqueContent.map(c => c.length).slice(0, 10)
       });
+      
+      // Show what we're actually translating
+      console.log('📝 TRANSLATION SUMMARY:');
+      console.log(`- Total cells processed: ${totalCells}`);
+      console.log(`- Empty cells: ${emptyCells}`);
+      console.log(`- Filtered out: ${filteredContent}`);
+      console.log(`- UNIQUE ITEMS TO TRANSLATE: ${uniqueContent.length}`);
+      console.log(`- Only translating Question column (2) and Variant columns (3,5,7,9)`);
       
       // Show some examples of what's being translated
       console.log('📝 Sample content being translated:');
