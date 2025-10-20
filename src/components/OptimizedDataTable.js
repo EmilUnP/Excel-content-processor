@@ -172,10 +172,29 @@ const OptimizedDataTable = memo(({
     handleScroll
   } = useVirtualScrolling(data, 100, 600);
 
-  // Memoize column headers
+  // Memoize column headers with proper names
   const columnHeaders = useMemo(() => {
     if (!data || data.length === 0) return [];
-    return Array.from({ length: data[0]?.length || 0 }, (_, i) => `Column ${i + 1}`);
+    
+    const headers = [];
+    const totalColumns = data[0]?.length || 0;
+    
+    for (let i = 0; i < totalColumns; i++) {
+      if (i === 0) headers.push('ID');
+      else if (i === 1) headers.push('ID 2');
+      else if (i === 2) headers.push('Question');
+      else if (i === 3) headers.push('Variant 1');
+      else if (i === 4) headers.push('Code 1');
+      else if (i === 5) headers.push('Variant 2');
+      else if (i === 6) headers.push('Code 2');
+      else if (i === 7) headers.push('Variant 3');
+      else if (i === 8) headers.push('Code 3');
+      else if (i === 9) headers.push('Variant 4');
+      else if (i === 10) headers.push('Code 4');
+      else headers.push(`Column ${i + 1}`);
+    }
+    
+    return headers;
   }, [data]);
 
   // Memoize visible data with row indices
@@ -239,9 +258,9 @@ const OptimizedDataTable = memo(({
             // Match the same width logic as data rows
             const getColumnWidth = (colIndex) => {
               if (colIndex === 0) return 'min-w-[120px]'; // ID column
-              if (colIndex === 1) return 'min-w-[100px]'; // Question ID column
-              if (colIndex === 2) return 'min-w-[300px]'; // Question text
-              if (colIndex >= 3 && colIndex <= 10) return 'min-w-[150px]'; // Answer columns
+              if (colIndex === 1) return 'min-w-[100px]'; // ID 2 column
+              if (colIndex === 2) return 'min-w-[300px]'; // Question column
+              if (colIndex >= 3 && colIndex <= 10) return 'min-w-[150px]'; // Variant/Code columns
               return 'min-w-[120px]'; // Default width
             };
             
@@ -272,9 +291,9 @@ const OptimizedDataTable = memo(({
                   // Set different minimum widths based on column content
                   const getColumnWidth = (colIndex) => {
                     if (colIndex === 0) return 'min-w-[120px]'; // ID column - wider for long numbers
-                    if (colIndex === 1) return 'min-w-[100px]'; // Question ID column
-                    if (colIndex === 2) return 'min-w-[300px]'; // Question text - much wider for long text
-                    if (colIndex >= 3 && colIndex <= 10) return 'min-w-[150px]'; // Answer columns
+                    if (colIndex === 1) return 'min-w-[100px]'; // ID 2 column
+                    if (colIndex === 2) return 'min-w-[300px]'; // Question column - much wider for long text
+                    if (colIndex >= 3 && colIndex <= 10) return 'min-w-[150px]'; // Variant/Code columns
                     return 'min-w-[120px]'; // Default width
                   };
                   
