@@ -156,7 +156,7 @@ function OptimizedApp() {
           setExcelData(result.data);
           toast.success('Data loaded successfully!', { duration: 2000 });
         } else {
-          toast.info('No saved data found', { duration: 2000 });
+          toast('No saved data found', { duration: 2000 });
         }
       } else {
         throw new Error('Failed to load data');
@@ -272,16 +272,21 @@ function OptimizedApp() {
 
       if (isTranslationStopped) {
         // Translation stopped
-        toast.info('Translation stopped', { duration: 2000 });
+        toast('Translation stopped', { duration: 2000 });
         return;
       }
 
+      console.log('🔄 Starting translation process...');
+      console.log('📊 Content to translate:', uniqueContent.length, 'unique items');
+      
       // Translate with abort signal
-      const translations = await translateBatchStructured(uniqueContent, targetLanguage);
+      const translations = await translateBatchStructured(uniqueContent, targetLanguage, translationAbortController.current.signal);
+      
+      console.log('✅ Translation completed:', translations.length, 'translations received');
       
       if (isTranslationStopped) {
         // Translation stopped
-        toast.info('Translation stopped', { duration: 2000 });
+        toast('Translation stopped', { duration: 2000 });
         return;
       }
       
@@ -291,6 +296,8 @@ function OptimizedApp() {
         translationMap.set(content, translations[index] || content);
       });
 
+      console.log('🔄 Updating data with translations...');
+      
       // Apply translations
       const translatedData = excelData.map((row) => 
         row.map((cell) => {
@@ -306,6 +313,7 @@ function OptimizedApp() {
         })
       );
       
+      console.log('✅ Data updated successfully');
       setExcelData(translatedData);
       
       // Translation completed
@@ -316,7 +324,7 @@ function OptimizedApp() {
     } catch (error) {
       if (error.name === 'AbortError') {
         // Translation stopped
-        toast.info('Translation cancelled', { duration: 2000 });
+        toast('Translation cancelled', { duration: 2000 });
       } else {
         console.error('Bulk translation failed:', error);
         // Translation stopped
@@ -340,7 +348,7 @@ function OptimizedApp() {
     
     cancelTranslation();
     toast.dismiss();
-    toast.info('Translation stopped by user', { duration: 2000 });
+    toast('Translation stopped by user', { duration: 2000 });
   }, []);
 
   // Optimized language selection
