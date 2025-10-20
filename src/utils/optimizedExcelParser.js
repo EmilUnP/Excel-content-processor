@@ -97,15 +97,39 @@ export const parseExcelFile = async (file) => {
             row.some(cell => cell !== '' && cell !== null && cell !== undefined)
           );
 
-          // Process data in chunks for better performance
+          // Find columns that have any meaningful data
+          const totalColumns = filteredData[0]?.length || 0;
+          const columnsWithData = [];
+          
+          for (let colIndex = 0; colIndex < totalColumns; colIndex++) {
+            let hasData = false;
+            
+            // Check if this column has any non-empty data across all rows
+            for (let rowIndex = 0; rowIndex < filteredData.length; rowIndex++) {
+              const cell = filteredData[rowIndex]?.[colIndex];
+              if (cell !== '' && cell !== null && cell !== undefined && String(cell).trim() !== '') {
+                hasData = true;
+                break;
+              }
+            }
+            
+            if (hasData) {
+              columnsWithData.push(colIndex);
+            }
+          }
+          
+          console.log(`📊 Excel parsing: Found ${columnsWithData.length} columns with data out of ${totalColumns} total columns`);
+          console.log(`📊 Visible columns:`, columnsWithData);
+
+          // Process data in chunks for better performance, only including columns with data
           const processedData = [];
           const CHUNK_SIZE = 100; // Process 100 rows at a time
           
           for (let i = 0; i < filteredData.length; i += CHUNK_SIZE) {
             const chunk = filteredData.slice(i, i + CHUNK_SIZE);
             const processedChunk = chunk.map((row, rowIndex) => 
-              row.map((cell, colIndex) => 
-                processCell(cell, i + rowIndex, colIndex)
+              columnsWithData.map((colIndex) => 
+                processCell(row[colIndex], i + rowIndex, colIndex)
               )
             );
             processedData.push(...processedChunk);
@@ -117,6 +141,9 @@ export const parseExcelFile = async (file) => {
               fileName: file.name,
               totalRows: processedData.length,
               totalColumns: processedData[0]?.length || 0,
+              originalColumns: totalColumns,
+              visibleColumns: columnsWithData,
+              filteredColumns: totalColumns - columnsWithData.length,
               sheetName: sheetName,
               processedAt: new Date().toISOString()
             }

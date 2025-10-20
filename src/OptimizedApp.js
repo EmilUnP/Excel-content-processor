@@ -153,8 +153,14 @@ function OptimizedApp() {
       
       console.log('Excel data parsed successfully:', parsedData.metadata);
       
-      toast.success(`File loaded: ${parsedData.metadata.totalRows} rows, ${parsedData.metadata.totalColumns} columns`, {
-        duration: 3000,
+      // Show column filtering information
+      const { totalRows, totalColumns, originalColumns, filteredColumns } = parsedData.metadata;
+      const columnInfo = filteredColumns > 0 
+        ? ` (${originalColumns} original → ${totalColumns} visible, ${filteredColumns} empty columns filtered out)`
+        : ` (${totalColumns} columns)`;
+      
+      toast.success(`File loaded: ${totalRows} rows${columnInfo}`, {
+        duration: 4000,
         position: 'top-right'
       });
     } catch (error) {
