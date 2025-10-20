@@ -188,29 +188,48 @@ const OptimizedDataTable = memo(({
     handleScroll
   } = useVirtualScrolling(data, 110, 600);
 
-  // Memoize column headers with proper names
-  const columnHeaders = useMemo(() => {
-    if (!data || data.length === 0) return [];
+  // Memoize column headers with proper names and filter out empty columns
+  const { columnHeaders, visibleColumns } = useMemo(() => {
+    if (!data || data.length === 0) return { columnHeaders: [], visibleColumns: [] };
     
     const headers = [];
+    const visibleCols = [];
     const totalColumns = data[0]?.length || 0;
     
+    // Check which columns have any meaningful data
     for (let i = 0; i < totalColumns; i++) {
-      if (i === 0) headers.push('ID');
-      else if (i === 1) headers.push('ID 2');
-      else if (i === 2) headers.push('Question');
-      else if (i === 3) headers.push('Variant 1');
-      else if (i === 4) headers.push('Code 1');
-      else if (i === 5) headers.push('Variant 2');
-      else if (i === 6) headers.push('Code 2');
-      else if (i === 7) headers.push('Variant 3');
-      else if (i === 8) headers.push('Code 3');
-      else if (i === 9) headers.push('Variant 4');
-      else if (i === 10) headers.push('Code 4');
-      else headers.push(`Column ${i + 1}`);
+      let hasData = false;
+      
+      // Check if this column has any non-empty data
+      for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+        const cell = data[rowIndex]?.[i];
+        if (cell && cell.cleaned && cell.cleaned.trim() !== '') {
+          hasData = true;
+          break;
+        }
+      }
+      
+      // Only include columns that have data
+      if (hasData) {
+        visibleCols.push(i);
+        
+        // Add appropriate header name
+        if (i === 0) headers.push('ID');
+        else if (i === 1) headers.push('ID 2');
+        else if (i === 2) headers.push('Question');
+        else if (i === 3) headers.push('Variant 1');
+        else if (i === 4) headers.push('Code 1');
+        else if (i === 5) headers.push('Variant 2');
+        else if (i === 6) headers.push('Code 2');
+        else if (i === 7) headers.push('Variant 3');
+        else if (i === 8) headers.push('Code 3');
+        else if (i === 9) headers.push('Variant 4');
+        else if (i === 10) headers.push('Code 4');
+        else headers.push(`Column ${i + 1}`);
+      }
     }
     
-    return headers;
+    return { columnHeaders: headers, visibleColumns: visibleCols };
   }, [data]);
 
   // Memoize visible data with row indices
@@ -279,6 +298,8 @@ const OptimizedDataTable = memo(({
               Row
             </div>
             {columnHeaders.map((header, index) => {
+              const originalColIndex = visibleColumns[index];
+              
               // Match the same width logic as data rows
               const getColumnWidth = (colIndex) => {
                 if (colIndex === 0) return 'min-w-[120px]'; // ID column
@@ -289,7 +310,7 @@ const OptimizedDataTable = memo(({
               };
               
               return (
-                <div key={index} className={`flex-1 ${getColumnWidth(index)} px-3 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider bg-gradient-to-r from-slate-50 to-blue-50`}>
+                <div key={index} className={`flex-1 ${getColumnWidth(originalColIndex)} px-3 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider bg-gradient-to-r from-slate-50 to-blue-50`}>
                   {header}
                 </div>
               );
@@ -305,7 +326,9 @@ const OptimizedDataTable = memo(({
                 <div className="w-20 px-4 py-4 text-sm text-slate-500 bg-slate-50/30 flex-shrink-0 font-semibold border-r border-slate-200">
                   {actualIndex + 1}
                 </div>
-                {rowData.map((cell, colIndex) => {
+                {visibleColumns.map((originalColIndex, displayIndex) => {
+                  const cell = rowData[originalColIndex];
+                  
                   // Set different minimum widths based on column content
                   const getColumnWidth = (colIndex) => {
                     if (colIndex === 0) return 'min-w-[120px]'; // ID column - wider for long numbers
@@ -316,12 +339,12 @@ const OptimizedDataTable = memo(({
                   };
                   
                   return (
-                    <div key={`${actualIndex}-${colIndex}`} className={`flex-1 ${getColumnWidth(colIndex)}`}>
+                    <div key={`${actualIndex}-${originalColIndex}`} className={`flex-1 ${getColumnWidth(originalColIndex)}`}>
                       <OptimizedTableCell
                         cell={cell}
-                        colIndex={colIndex}
+                        colIndex={originalColIndex}
                         rowIndex={actualIndex}
-                        {...getCellStyling(cell, colIndex)}
+                        {...getCellStyling(cell, originalColIndex)}
                         editingCell={editingCell}
                         editValue={editValue}
                         setEditValue={setEditValue}
