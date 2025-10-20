@@ -503,10 +503,22 @@ function OptimizedApp() {
         row.map((cell) => {
           if (cell.cleaned && cell.cleaned.trim()) {
             const translated = translationMap.get(cell.cleaned.trim()) || cell.cleaned;
+            
+            // If original has HTML/entities, we need to translate while preserving formatting
+            let translatedOriginal = cell.original;
+            if (cell.hasHtml || cell.hasEntities) {
+              // Replace the cleaned content in the original with translated content
+              // This preserves HTML tags and entities while translating the text
+              translatedOriginal = cell.original.replace(cell.cleaned, translated);
+            } else {
+              // If no HTML/entities, just use the translated content
+              translatedOriginal = translated;
+            }
+            
             return {
               ...cell,
               cleaned: translated,
-              original: translated
+              original: translatedOriginal
             };
           }
           return cell;
