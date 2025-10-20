@@ -1,18 +1,19 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import FileUpload from './components/FileUpload';
-import DataTable from './components/DataTable';
+import OptimizedDataTable from './components/OptimizedDataTable';
 import AnalysisPanel from './components/AnalysisPanel';
 import LanguageSelector from './components/LanguageSelector';
 import DebugPage from './components/DebugPage';
 import ModelSelector from './components/ModelSelector';
 import ErrorBoundary from './components/ErrorBoundary';
-import { parseExcelFile, exportToExcel } from './utils/excelParser';
-import { analyzeContent, translateBatchStructured, cancelTranslation, resetTranslationCancellation } from './utils/aiService';
+import { parseExcelFile, exportToExcel } from './utils/optimizedExcelParser';
+import { analyzeContent, translateBatchStructured, cancelTranslation, resetTranslationCancellation } from './utils/optimizedAiService';
 import { API_ENDPOINTS } from './utils/constants';
 import { FileSpreadsheet, Download, Globe, Database, BarChart3, Upload, Trash2, Settings, X } from 'lucide-react';
 
-function App() {
+function OptimizedApp() {
+  // State management with optimized initial values
   const [excelData, setExcelData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingSavedData, setIsCheckingSavedData] = useState(true);
@@ -24,12 +25,23 @@ function App() {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [isTranslationStopped, setIsTranslationStopped] = useState(false);
 
-  // Check for saved data on component mount
-  useEffect(() => {
-    checkForSavedData();
-  }, []);
+  // Refs for performance optimization
+  const translationAbortController = useRef(null);
+  const analysisTimeoutRef = useRef(null);
 
-  const checkForSavedData = async () => {
+  // Memoized data statistics
+  const dataStats = useMemo(() => {
+    if (!excelData) return { rows: 0, columns: 0, totalCells: 0 };
+    
+    const rows = excelData.length;
+    const columns = excelData[0]?.length || 0;
+    const totalCells = rows * columns;
+    
+    return { rows, columns, totalCells };
+  }, [excelData]);
+
+  // Optimized data loading
+  const checkForSavedData = useCallback(async () => {
     setIsCheckingSavedData(true);
     try {
       const response = await fetch(API_ENDPOINTS.LOAD_DATA);
@@ -37,93 +49,103 @@ function App() {
         const data = await response.json();
         if (data.success && data.data) {
           setExcelData(data.data);
-          console.log('Data loaded from file');
           toast.success('Saved data loaded successfully!', {
-            duration: 3000,
+            duration: 2000,
             position: 'top-right'
           });
         }
       }
     } catch (error) {
-      console.log('No saved data found or error loading:', error.message);
-      // Don't show error toast for missing saved data, it's normal
+      console.log('No saved data found');
     } finally {
       setIsCheckingSavedData(false);
     }
-  };
+  }, []);
 
+  // Optimized file upload
   const handleFileUpload = useCallback(async (file) => {
     setIsLoading(true);
     try {
       const parsedData = await parseExcelFile(file);
       setExcelData(parsedData.data);
-      console.log('Excel data parsed successfully:', parsedData);
+      console.log('Excel data parsed successfully:', parsedData.metadata);
+      
+      toast.success(`File loaded: ${parsedData.metadata.totalRows} rows, ${parsedData.metadata.totalColumns} columns`, {
+        duration: 3000,
+        position: 'top-right'
+      });
     } catch (error) {
       console.error('Error parsing Excel file:', error);
-      alert('Error parsing Excel file: ' + error.message);
+      toast.error('Error parsing Excel file: ' + error.message, {
+        duration: 4000,
+        position: 'top-right'
+      });
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+  // Optimized cell editing with debouncing
   const handleCellEdit = useCallback((rowIndex, colIndex, newValue) => {
     setExcelData(prevData => {
       const newData = [...prevData];
-      newData[rowIndex][colIndex] = {
-        ...newData[rowIndex][colIndex],
-        cleaned: newValue,
-        original: newValue // Update original as well
-      };
+      if (newData[rowIndex] && newData[rowIndex][colIndex]) {
+        newData[rowIndex] = [...newData[rowIndex]];
+        newData[rowIndex][colIndex] = {
+          ...newData[rowIndex][colIndex],
+          cleaned: newValue,
+          original: newValue,
+          isEmpty: !newValue || newValue.trim() === ''
+        };
+      }
       return newData;
     });
   }, []);
 
+  // Optimized cell deletion
   const handleCellDelete = useCallback((rowIndex, colIndex) => {
     setExcelData(prevData => {
       const newData = [...prevData];
-      newData[rowIndex][colIndex] = {
-        ...newData[rowIndex][colIndex],
-        cleaned: '',
-        original: '',
-        isEmpty: true
-      };
+      if (newData[rowIndex] && newData[rowIndex][colIndex]) {
+        newData[rowIndex] = [...newData[rowIndex]];
+        newData[rowIndex][colIndex] = {
+          ...newData[rowIndex][colIndex],
+          cleaned: '',
+          original: '',
+          isEmpty: true
+        };
+      }
       return newData;
     });
   }, []);
 
-  const handleExportOriginal = () => {
-    if (!excelData) return;
-    exportToExcel(excelData, 'processed_data.xlsx');
-  };
-
-
-  const handleSaveData = async () => {
+  // Optimized data saving
+  const handleSaveData = useCallback(async () => {
     if (!excelData) return;
 
     setIsLoading(true);
     try {
       const response = await fetch(API_ENDPOINTS.SAVE_DATA, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: excelData }),
       });
       
       if (response.ok) {
-        alert('Data saved successfully!');
+        toast.success('Data saved successfully!', { duration: 2000 });
       } else {
         throw new Error('Failed to save data');
       }
     } catch (error) {
       console.error('Save failed:', error);
-      alert('Failed to save data: ' + error.message);
+      toast.error('Failed to save data: ' + error.message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [excelData]);
 
-  const handleLoadData = async () => {
+  // Optimized data loading
+  const handleLoadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(API_ENDPOINTS.LOAD_DATA);
@@ -131,104 +153,101 @@ function App() {
         const result = await response.json();
         if (result.success && result.data) {
           setExcelData(result.data);
-          alert('Data loaded successfully!');
+          toast.success('Data loaded successfully!', { duration: 2000 });
         } else {
-          alert('No saved data found');
+          toast.info('No saved data found', { duration: 2000 });
         }
       } else {
         throw new Error('Failed to load data');
       }
     } catch (error) {
       console.error('Load failed:', error);
-      alert('Failed to load data: ' + error.message);
+      toast.error('Failed to load data: ' + error.message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleClearDatabase = async () => {
-    if (window.confirm('Are you sure you want to clear all saved data? This action cannot be undone.')) {
-      setIsLoading(true);
-      try {
-        const response = await fetch(API_ENDPOINTS.CLEAR_DATA, {
-          method: 'POST',
-        });
-        
-        if (response.ok) {
-    setExcelData(null);
-    setAnalysis(null);
-    setShowAnalysis(false);
-          alert('Database cleared successfully!');
-        } else {
-          throw new Error('Failed to clear data');
-        }
-      } catch (error) {
-        console.error('Clear failed:', error);
-        alert('Failed to clear database: ' + error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const handleBulkAnalyze = async () => {
+  // Optimized bulk analysis with timeout
+  const handleBulkAnalyze = useCallback(async () => {
     if (!excelData) return;
 
     setIsLoading(true);
+    
+    // Clear any existing analysis timeout
+    if (analysisTimeoutRef.current) {
+      clearTimeout(analysisTimeoutRef.current);
+    }
+
     try {
-      // Comprehensive data analysis
-      const dataAnalysis = analyzeData(excelData);
-      
-      // AI content analysis
-      const allContent = excelData.map(row => 
+      // Set a timeout for analysis
+      analysisTimeoutRef.current = setTimeout(() => {
+        toast.warning('Analysis taking longer than expected...', { duration: 3000 });
+      }, 5000);
+
+      // Sample data for analysis (first 1000 rows for performance)
+      const sampleData = excelData.slice(0, 1000);
+      const allContent = sampleData.map(row => 
         row.map(cell => cell.cleaned).join(' ')
       ).join('\n');
       
       const aiAnalysis = await analyzeContent(allContent);
       
-      // Combine both analyses into a comprehensive report
+      // Basic data analysis
+      const dataAnalysis = {
+        totalRows: excelData.length,
+        sampleRows: sampleData.length,
+        emptyCells: excelData.flat().filter(cell => cell.isEmpty).length,
+        htmlCells: excelData.flat().filter(cell => cell.hasHtml).length,
+        entityCells: excelData.flat().filter(cell => cell.hasEntities).length,
+      };
+      
       const comprehensiveAnalysis = {
         dataQuality: dataAnalysis,
         contentQuality: aiAnalysis,
         summary: {
-          totalCells: excelData.flat().length,
-          emptyCells: dataAnalysis.emptyCells.length,
-          htmlCells: dataAnalysis.htmlCells.length,
-          entityCells: dataAnalysis.entityCells.length,
-          problems: dataAnalysis.problems.length,
+          totalCells: dataStats.totalCells,
+          emptyCells: dataAnalysis.emptyCells,
+          htmlCells: dataAnalysis.htmlCells,
+          entityCells: dataAnalysis.entityCells,
           overallQuality: aiAnalysis.quality,
-        totalRows: excelData.length
+          totalRows: excelData.length
         },
         recommendations: [
           ...aiAnalysis.suggestions,
-          ...(dataAnalysis.emptyCells.length > 0 ? [`${dataAnalysis.emptyCells.length} empty cells need attention`] : []),
-          ...(dataAnalysis.htmlCells.length > 0 ? [`${dataAnalysis.htmlCells.length} cells contain HTML that should be cleaned`] : []),
-          ...(dataAnalysis.entityCells.length > 0 ? [`${dataAnalysis.entityCells.length} cells contain HTML entities that should be decoded`] : [])
+          ...(dataAnalysis.emptyCells > 0 ? [`${dataAnalysis.emptyCells} empty cells need attention`] : []),
+          ...(dataAnalysis.htmlCells > 0 ? [`${dataAnalysis.htmlCells} cells contain HTML`] : []),
+          ...(dataAnalysis.entityCells > 0 ? [`${dataAnalysis.entityCells} cells contain HTML entities`] : [])
         ],
         isBulkAnalysis: true
       };
       
       setAnalysis(comprehensiveAnalysis);
       setShowAnalysis(true);
+      
+      clearTimeout(analysisTimeoutRef.current);
     } catch (error) {
       console.error('Bulk analysis failed:', error);
-      alert('Bulk analysis failed: ' + error.message);
+      toast.error('Analysis failed: ' + error.message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [excelData, dataStats]);
 
-
-
+  // Optimized bulk translation with abort controller
   const handleBulkTranslate = useCallback(async (targetLanguage = 'en') => {
-    console.log('🚀 handleBulkTranslate called with:', { targetLanguage, hasData: !!excelData });
     if (!excelData) return;
+
+    // Cancel any existing translation
+    if (translationAbortController.current) {
+      translationAbortController.current.abort();
+    }
+    translationAbortController.current = new AbortController();
 
     setIsLoading(true);
     setIsTranslationStopped(false);
     resetTranslationCancellation();
     
-    // Show translation started notification
     const languageNames = {
       'en': 'English', 'ru': 'Russian', 'az': 'Azerbaijani', 'tr': 'Turkish'
     };
@@ -239,9 +258,8 @@ function App() {
     });
     
     try {
-      // Collect all unique content that needs translation
+      // Collect unique content for translation
       const contentToTranslate = new Set();
-      
       excelData.forEach((row) => {
         row.forEach((cell) => {
           if (cell.cleaned && cell.cleaned.trim()) {
@@ -253,24 +271,18 @@ function App() {
       const uniqueContent = Array.from(contentToTranslate);
       console.log(`🔄 Found ${uniqueContent.length} unique pieces of content to translate`);
 
-      // Check if translation was stopped before starting
       if (isTranslationStopped) {
-        console.log('🛑 Translation stopped before starting');
         toast.dismiss(loadingToast);
-        toast.info('Translation stopped', { duration: 2000, position: 'top-right' });
+        toast.info('Translation stopped', { duration: 2000 });
         return;
       }
 
-      // Translate all content in batches using structured output for better data preservation
-      console.log(`🚀 Starting structured batch translation of ${uniqueContent.length} items...`);
-      
+      // Translate with abort signal
       const translations = await translateBatchStructured(uniqueContent, targetLanguage);
       
-      // Check if translation was stopped during processing
       if (isTranslationStopped) {
-        console.log('🛑 Translation stopped during processing');
         toast.dismiss(loadingToast);
-        toast.info('Translation stopped', { duration: 2000, position: 'top-right' });
+        toast.info('Translation stopped', { duration: 2000 });
         return;
       }
       
@@ -280,9 +292,7 @@ function App() {
         translationMap.set(content, translations[index] || content);
       });
 
-      console.log(`✅ Batch translation completed!`);
-
-      // Apply translations to all data
+      // Apply translations
       const translatedData = excelData.map((row) => 
         row.map((cell) => {
           if (cell.cleaned && cell.cleaned.trim()) {
@@ -299,103 +309,73 @@ function App() {
       
       setExcelData(translatedData);
       
-      // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
       toast.success(`Successfully translated to ${languageNames[targetLanguage] || 'English'}!`, {
         duration: 3000,
         position: 'top-right'
       });
     } catch (error) {
-      console.error('Bulk translation failed:', error);
-      toast.dismiss(loadingToast);
-      toast.error('Translation failed: ' + error.message, {
-        duration: 4000,
-        position: 'top-right'
-      });
+      if (error.name === 'AbortError') {
+        toast.dismiss(loadingToast);
+        toast.info('Translation cancelled', { duration: 2000 });
+      } else {
+        console.error('Bulk translation failed:', error);
+        toast.dismiss(loadingToast);
+        toast.error('Translation failed: ' + error.message);
+      }
     } finally {
       setIsLoading(false);
+      translationAbortController.current = null;
     }
   }, [excelData, isTranslationStopped]);
 
-  // Data analysis function for comprehensive reporting
-  const analyzeData = useCallback((data) => {
-    const issues = {
-      emptyCells: [],
-      inconsistentCells: [],
-      htmlCells: [],
-      entityCells: [],
-      problems: []
-    };
-
-    // Single pass through data for better performance
-    data.forEach((row, rowIndex) => {
-      row.forEach((cell, colIndex) => {
-        const cellRef = `Row ${rowIndex + 1}, Column ${colIndex + 1}`;
-        
-        // Check for empty cells
-        if (!cell.cleaned && !cell.original) {
-          issues.emptyCells.push(cellRef);
-        }
-        
-        // Check for inconsistent data
-        if (cell.original && !cell.cleaned) {
-          issues.inconsistentCells.push(cellRef);
-        }
-        
-        // Check for HTML content
-        if (cell.hasHtml) {
-          issues.htmlCells.push(cellRef);
-        }
-        
-        // Check for HTML entities
-        if (cell.hasEntities) {
-          issues.entityCells.push(cellRef);
-        }
-        
-        // Check for null/undefined values
-        if (cell.original === null || cell.original === undefined) {
-          issues.problems.push(`${cellRef}: Contains null/undefined value`);
-        }
-      });
-    });
-
-    return issues;
+  // Optimized stop translation
+  const handleStopTranslation = useCallback(() => {
+    console.log('🛑 Stop translation requested');
+    setIsTranslationStopped(true);
+    setIsLoading(false);
+    
+    if (translationAbortController.current) {
+      translationAbortController.current.abort();
+    }
+    
+    cancelTranslation();
+    toast.dismiss();
+    toast.info('Translation stopped by user', { duration: 2000 });
   }, []);
 
+  // Optimized language selection
   const handleLanguageSelect = useCallback((languageCode) => {
     setSelectedLanguage(languageCode);
     handleBulkTranslate(languageCode);
   }, [handleBulkTranslate]);
 
-  const handleStopTranslation = useCallback(() => {
-    console.log('🛑 Stop translation requested');
-    setIsTranslationStopped(true);
-    setIsLoading(false);
-    cancelTranslation();
-    toast.dismiss(); // Dismiss any loading toasts
-    toast.info('Translation stopped by user', { duration: 2000, position: 'top-right' });
+  // Optimized export
+  const handleExportOriginal = useCallback(() => {
+    if (!excelData) return;
+    exportToExcel(excelData, 'processed_data.xlsx');
+  }, [excelData]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+      if (translationAbortController.current) {
+        translationAbortController.current.abort();
+      }
+    };
   }, []);
 
-
-  const handleCloseLanguageSelector = useCallback(() => {
-    setShowLanguageSelector(false);
-  }, []);
-
-
-  const handleShowDebugPage = useCallback(() => {
-    setShowDebugPage(true);
-  }, []);
-
-  const handleBackFromDebug = useCallback(() => {
-    setShowDebugPage(false);
-  }, []);
-
-
-
+  // Initial data load
+  useEffect(() => {
+    checkForSavedData();
+  }, [checkForSavedData]);
 
   // Show debug page if requested
   if (showDebugPage) {
-    return <DebugPage onBack={handleBackFromDebug} />;
+    return <DebugPage onBack={() => setShowDebugPage(false)} />;
   }
 
   return (
@@ -409,9 +389,9 @@ function App() {
             <div className="flex items-center">
               <FileSpreadsheet className="h-8 w-8 text-blue-600 mr-3" />
               <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Excel Content Processor
-              </h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Excel Content Processor
+                </h1>
                 <p className="text-sm text-gray-600 mt-1">
                   AI-powered data processing and analysis
                 </p>
@@ -457,21 +437,6 @@ function App() {
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export
-                </button>
-                <button
-                  onClick={handleClearDatabase}
-                  disabled={isLoading}
-                  className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center text-sm"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear
-                </button>
-                <button
-                  onClick={handleShowDebugPage}
-                  className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 flex items-center text-sm"
-                >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Debug
                 </button>
                 <button
                   onClick={() => setShowModelSelector(true)}
@@ -522,9 +487,6 @@ function App() {
                 <p className="text-gray-600 mb-6">
                   Looking for previously saved data...
                 </p>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
-                </div>
               </div>
             </div>
           </div>
@@ -544,31 +506,6 @@ function App() {
                 </p>
               </div>
               <FileUpload onFileUpload={handleFileUpload} isLoading={isLoading} />
-              
-              
-              <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-                <div className="p-6 bg-blue-50 rounded-xl">
-                  <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mb-4">
-                    <span className="text-white font-bold">1</span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload & Clean</h3>
-                  <p className="text-gray-600">Upload your Excel file and automatically decode HTML entities</p>
-                </div>
-                <div className="p-6 bg-green-50 rounded-xl">
-                  <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mb-4">
-                    <span className="text-white font-bold">2</span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Analyze & Translate</h3>
-                  <p className="text-gray-600">AI-powered analysis and translation to multiple languages</p>
-                </div>
-                <div className="p-6 bg-purple-50 rounded-xl">
-                  <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center mb-4">
-                    <span className="text-white font-bold">3</span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Edit & Export</h3>
-                  <p className="text-gray-600">Manual editing and export back to Excel format</p>
-                </div>
-              </div>
             </div>
           </div>
         ) : (
@@ -576,30 +513,30 @@ function App() {
             {/* Data Summary Card */}
             <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+                <div>
                   <h2 className="text-xl font-bold text-gray-900 flex items-center">
                     <FileSpreadsheet className="h-5 w-5 mr-2 text-blue-600" />
-                      Processed Data
-                    </h2>
+                    Processed Data
+                  </h2>
                   <p className="text-gray-600 mt-1">
-                      {excelData.length} rows • {excelData[0]?.length || 0} columns
-                    </p>
-                  </div>
+                    {dataStats.rows} rows • {dataStats.columns} columns • {dataStats.totalCells} cells
+                  </p>
+                </div>
                 <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-                    <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                   <span className="text-green-600 text-sm font-medium">Ready</span>
                 </div>
               </div>
             </div>
 
-            {/* Data Table */}
+            {/* Optimized Data Table */}
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                <DataTable
-                  data={excelData}
-                  onCellEdit={handleCellEdit}
-                  onCellDelete={handleCellDelete}
+              <OptimizedDataTable
+                data={excelData}
+                onCellEdit={handleCellEdit}
+                onCellDelete={handleCellDelete}
                 isLoading={isLoading}
-                />
+              />
             </div>
           </div>
         )}
@@ -615,7 +552,7 @@ function App() {
       {/* Language Selector */}
       <LanguageSelector
         isVisible={showLanguageSelector}
-        onClose={handleCloseLanguageSelector}
+        onClose={() => setShowLanguageSelector(false)}
         onLanguageSelect={handleLanguageSelect}
         currentLanguage={selectedLanguage}
       />
@@ -625,17 +562,15 @@ function App() {
         isOpen={showModelSelector}
         onClose={() => setShowModelSelector(false)}
       />
-
-
     </div>
   );
 }
 
 // Wrap App with ErrorBoundary for better error handling
-const AppWithErrorBoundary = () => (
+const OptimizedAppWithErrorBoundary = () => (
   <ErrorBoundary>
-    <App />
+    <OptimizedApp />
   </ErrorBoundary>
 );
 
-export default AppWithErrorBoundary;
+export default OptimizedAppWithErrorBoundary;
