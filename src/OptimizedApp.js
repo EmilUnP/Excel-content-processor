@@ -456,15 +456,24 @@ function OptimizedApp() {
       console.log('🔄 Starting translation process...');
       console.log('📊 Content to translate:', uniqueContent.length, 'unique items');
       
-      // Let AI service handle batching (it uses 80 items per batch)
-      setTranslationProgress({ current: 0, total: 1 });
+      // Calculate correct number of batches (AI service uses 80 items per batch)
+      const BATCH_SIZE = 80;
+      const totalBatches = Math.ceil(uniqueContent.length / BATCH_SIZE);
+      console.log(`📊 Will process ${totalBatches} batches of ${BATCH_SIZE} items each`);
+      
+      setTranslationProgress({ current: 0, total: totalBatches });
       setLoadingMessage(`Translating to ${languageNames[targetLanguage] || 'English'}...`);
       
       // Translate all content at once - AI service will handle batching internally
       const allTranslations = await translateBatchStructured(
         uniqueContent, 
         targetLanguage, 
-        translationAbortController.current.signal
+        translationAbortController.current.signal,
+        (currentBatch, totalBatches) => {
+          // Update progress as each batch completes
+          setTranslationProgress({ current: currentBatch, total: totalBatches });
+          console.log(`📊 Progress: ${currentBatch}/${totalBatches} batches completed`);
+        }
       );
       
       console.log('✅ Translation completed:', allTranslations.length, 'translations received');

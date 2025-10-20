@@ -213,7 +213,7 @@ export const analyzeContent = async (content) => {
 };
 
 // Optimized batch translation with aggressive batching
-export const translateBatchStructured = async (contentArray, targetLanguage = 'en', abortSignal = null) => {
+export const translateBatchStructured = async (contentArray, targetLanguage = 'en', abortSignal = null, progressCallback = null) => {
   console.log('🚀 Optimized batch translation:', { count: contentArray.length, targetLanguage });
   
   translationCancelled = false;
@@ -256,7 +256,14 @@ export const translateBatchStructured = async (contentArray, targetLanguage = 'e
     }
 
     const batch = cleanedContent.slice(i, i + BATCH_SIZE);
-    console.log(`🔄 Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(cleanedContent.length/BATCH_SIZE)} (${batch.length} items)`);
+    const currentBatch = Math.floor(i/BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(cleanedContent.length/BATCH_SIZE);
+    console.log(`🔄 Processing batch ${currentBatch}/${totalBatches} (${batch.length} items)`);
+    
+    // Call progress callback if provided
+    if (progressCallback) {
+      progressCallback(currentBatch, totalBatches);
+    }
     
     try {
       const apiRequest = {
