@@ -453,12 +453,19 @@ function OptimizedApp() {
 
       {/* Stop Button - Always on top during translation */}
       {isLoading && (
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed top-4 right-4 z-[9999]">
           <button
             onClick={handleStopTranslation}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center text-sm shadow-lg animate-pulse border-2 border-red-400"
+            className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 flex items-center text-base shadow-2xl animate-pulse border-2 border-red-400 font-semibold"
+            style={{ 
+              position: 'fixed',
+              top: '16px',
+              right: '16px',
+              zIndex: 9999,
+              boxShadow: '0 0 20px rgba(239, 68, 68, 0.5)'
+            }}
           >
-            <X className="h-4 w-4 mr-2" />
+            <X className="h-5 w-5 mr-2" />
             Stop Translation
           </button>
         </div>
@@ -466,8 +473,8 @@ function OptimizedApp() {
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center z-40">
-          <div className="bg-white rounded-lg p-6 flex items-center space-x-3 shadow-xl">
+        <div className="fixed inset-0 bg-black bg-opacity-10 flex items-center justify-center z-40 pointer-events-none">
+          <div className="bg-white rounded-lg p-6 flex items-center space-x-3 shadow-xl pointer-events-auto">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             <span className="text-gray-700 font-medium">Processing data...</span>
           </div>
