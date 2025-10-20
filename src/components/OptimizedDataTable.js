@@ -48,15 +48,15 @@ const OptimizedTableCell = memo(({
   const cellStyling = useMemo(() => {
     if (!cell) return 'bg-gray-50 text-gray-400 italic';
     
-    const baseClasses = 'px-3 py-2 text-sm border-b border-gray-200';
+    const baseClasses = 'border-b border-gray-200';
     const isEmpty = !cell.cleaned || cell.cleaned.trim() === '';
     const hasHtml = cell.hasHtml;
     const hasEntities = cell.hasEntities;
     
     if (isEmpty) return `${baseClasses} bg-gray-50 text-gray-400 italic`;
-    if (hasHtml || hasEntities) return `${baseClasses} bg-yellow-50 text-yellow-800`;
-    if (isAnswerColumn) return `${baseClasses} bg-blue-50 text-blue-900`;
-    return `${baseClasses} bg-white text-gray-900`;
+    if (hasHtml || hasEntities) return `${baseClasses} bg-yellow-50 text-yellow-800 border-l-4 border-l-yellow-400`;
+    if (isAnswerColumn) return `${baseClasses} bg-blue-50 text-blue-900 border-l-4 border-l-blue-400`;
+    return `${baseClasses} bg-white text-gray-900 hover:bg-gray-50`;
   }, [cell, isAnswerColumn]);
 
   if (isEditing) {
@@ -91,28 +91,28 @@ const OptimizedTableCell = memo(({
   }
 
   return (
-    <div className={`${cellStyling} group relative min-h-[60px] flex items-start`}>
+    <div className={`${cellStyling} group relative min-h-[80px] flex items-start p-3`}>
       <div 
-        className="flex-1 break-words overflow-wrap-anywhere whitespace-pre-wrap max-w-full" 
+        className="flex-1 break-words overflow-wrap-anywhere whitespace-pre-wrap max-w-full text-sm leading-relaxed" 
         title={cell?.cleaned || ''}
         style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
       >
         {cell?.cleaned || <span className="text-gray-400 italic">Empty</span>}
       </div>
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 ml-2 flex-shrink-0">
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1 ml-3 flex-shrink-0">
         <button
           onClick={() => handleEdit(rowIndex, colIndex, cell?.cleaned || '')}
-          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-          title="Edit"
+          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg border border-blue-200 hover:border-blue-300 transition-all"
+          title="Edit cell"
         >
-          <Edit3 className="h-3 w-3" />
+          <Edit3 className="h-4 w-4" />
         </button>
         <button
           onClick={() => onCellDelete(rowIndex, colIndex)}
-          className="p-1 text-red-600 hover:bg-red-100 rounded"
-          title="Delete"
+          className="p-2 text-red-600 hover:bg-red-100 rounded-lg border border-red-200 hover:border-red-300 transition-all"
+          title="Delete cell"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -138,7 +138,7 @@ const OptimizedDataTable = memo(({
     offsetY,
     totalHeight,
     handleScroll
-  } = useVirtualScrolling(data, 60, 600);
+  } = useVirtualScrolling(data, 100, 600);
 
   // Memoize column headers
   const columnHeaders = useMemo(() => {
@@ -200,14 +200,25 @@ const OptimizedDataTable = memo(({
       {/* Header */}
       <div className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
         <div className="flex">
-          <div className="w-16 px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider flex-shrink-0">
+          <div className="w-20 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider flex-shrink-0">
             Row
           </div>
-          {columnHeaders.map((header, index) => (
-            <div key={index} className="flex-1 px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider min-w-0">
-              {header}
-            </div>
-          ))}
+          {columnHeaders.map((header, index) => {
+            // Match the same width logic as data rows
+            const getColumnWidth = (colIndex) => {
+              if (colIndex === 0) return 'min-w-[120px]'; // ID column
+              if (colIndex === 1) return 'min-w-[100px]'; // Question ID column
+              if (colIndex === 2) return 'min-w-[300px]'; // Question text
+              if (colIndex >= 3 && colIndex <= 10) return 'min-w-[150px]'; // Answer columns
+              return 'min-w-[120px]'; // Default width
+            };
+            
+            return (
+              <div key={index} className={`flex-1 ${getColumnWidth(index)} px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider`}>
+                {header}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -222,27 +233,38 @@ const OptimizedDataTable = memo(({
           <div style={{ transform: `translateY(${offsetY}px)` }}>
             {visibleDataWithIndices.map(({ rowData, actualIndex }) => (
               <div key={actualIndex} className="flex hover:bg-gray-50">
-                <div className="w-16 px-3 py-2 text-sm text-gray-500 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+                <div className="w-20 px-4 py-3 text-sm text-gray-500 border-b border-gray-200 bg-gray-50 flex-shrink-0 font-medium">
                   {actualIndex + 1}
                 </div>
-                {rowData.map((cell, colIndex) => (
-                  <div key={`${actualIndex}-${colIndex}`} className="flex-1 min-w-0">
-                    <OptimizedTableCell
-                      cell={cell}
-                      colIndex={colIndex}
-                      rowIndex={actualIndex}
-                      {...getCellStyling(cell, colIndex)}
-                      editingCell={editingCell}
-                      editValue={editValue}
-                      setEditValue={setEditValue}
-                      handleEdit={handleEdit}
-                      handleSave={handleSave}
-                      handleCancel={handleCancel}
-                      handleKeyPress={handleKeyPress}
-                      onCellDelete={onCellDelete}
-                    />
-                  </div>
-                ))}
+                {rowData.map((cell, colIndex) => {
+                  // Set different minimum widths based on column content
+                  const getColumnWidth = (colIndex) => {
+                    if (colIndex === 0) return 'min-w-[120px]'; // ID column - wider for long numbers
+                    if (colIndex === 1) return 'min-w-[100px]'; // Question ID column
+                    if (colIndex === 2) return 'min-w-[300px]'; // Question text - much wider for long text
+                    if (colIndex >= 3 && colIndex <= 10) return 'min-w-[150px]'; // Answer columns
+                    return 'min-w-[120px]'; // Default width
+                  };
+                  
+                  return (
+                    <div key={`${actualIndex}-${colIndex}`} className={`flex-1 ${getColumnWidth(colIndex)}`}>
+                      <OptimizedTableCell
+                        cell={cell}
+                        colIndex={colIndex}
+                        rowIndex={actualIndex}
+                        {...getCellStyling(cell, colIndex)}
+                        editingCell={editingCell}
+                        editValue={editValue}
+                        setEditValue={setEditValue}
+                        handleEdit={handleEdit}
+                        handleSave={handleSave}
+                        handleCancel={handleCancel}
+                        handleKeyPress={handleKeyPress}
+                        onCellDelete={onCellDelete}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
