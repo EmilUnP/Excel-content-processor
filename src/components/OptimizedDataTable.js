@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, memo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, memo, useRef } from 'react';
 import { Edit3, Trash2, Check, X } from 'lucide-react';
 
 // Virtual scrolling hook

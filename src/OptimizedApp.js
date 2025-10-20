@@ -10,7 +10,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { parseExcelFile, exportToExcel } from './utils/optimizedExcelParser';
 import { analyzeContent, translateBatchStructured, cancelTranslation, resetTranslationCancellation } from './utils/optimizedAiService';
 import { API_ENDPOINTS } from './utils/constants';
-import { FileSpreadsheet, Download, Globe, Database, BarChart3, Upload, Trash2, Settings, X } from 'lucide-react';
+import { FileSpreadsheet, Download, Globe, Database, BarChart3, Upload, Settings, X } from 'lucide-react';
 
 function OptimizedApp() {
   // State management with optimized initial values

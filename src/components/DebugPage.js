@@ -37,7 +37,7 @@ const DebugPage = ({ onBack }) => {
     setIsLoading(true);
     console.log('🧪 Testing analysis...');
     try {
-      const { analyzeContent } = await import('../utils/aiService');
+      const { analyzeContent } = await import('../utils/optimizedAiService');
       const result = await analyzeContent('This is a test content for analysis');
       console.log('🧪 Test analysis result:', result);
       refreshDebugData();

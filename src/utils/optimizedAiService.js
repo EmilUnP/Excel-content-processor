@@ -352,3 +352,42 @@ export const getCacheStats = () => ({
   translation: translationCache.cache.size,
   content: contentCache.cache.size
 });
+
+// Debug functions for DebugPage
+let debugData = [];
+
+export const getDebugData = () => debugData;
+
+export const clearDebugData = () => {
+  debugData = [];
+};
+
+export const translateContent = async (content, targetLanguage = 'en') => {
+  const startTime = performance.now();
+  const debugEntry = {
+    type: 'translation',
+    language: targetLanguage,
+    originalContent: content,
+    cleanedContent: content,
+    timestamp: new Date().toISOString(),
+    success: false,
+    result: null,
+    error: null,
+    duration: 0,
+    apiRequest: null,
+    apiResponse: null
+  };
+
+  try {
+    const result = await translateBatchStructured([content], targetLanguage);
+    debugEntry.success = true;
+    debugEntry.result = result[0];
+    debugEntry.duration = performance.now() - startTime;
+  } catch (error) {
+    debugEntry.error = error.message;
+    debugEntry.duration = performance.now() - startTime;
+  }
+
+  debugData.push(debugEntry);
+  return debugEntry.result;
+};
