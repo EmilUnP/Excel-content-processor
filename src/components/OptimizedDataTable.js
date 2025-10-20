@@ -115,20 +115,25 @@ const OptimizedTableCell = memo(({
   const contentBadges = getContentBadges();
 
   return (
-    <div className={`${cellStyling} group relative min-h-[80px] flex items-start p-3`}>
+    <div className={`${cellStyling} group relative min-h-[90px] flex items-start p-4`}>
       <div className="flex-1 flex flex-col">
         {/* Cell content */}
         <div 
-          className="break-words overflow-wrap-anywhere whitespace-pre-wrap max-w-full text-sm leading-relaxed flex-1" 
+          className="break-words overflow-wrap-anywhere whitespace-pre-wrap max-w-full text-sm leading-relaxed flex-1 font-mono" 
           title={cell?.cleaned || ''}
-          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+          style={{ 
+            wordBreak: 'break-word', 
+            overflowWrap: 'anywhere',
+            lineHeight: '1.6',
+            fontSize: '13px'
+          }}
         >
           {cell?.cleaned || <span className="text-gray-400 italic">Empty</span>}
         </div>
         
         {/* Content badges at bottom */}
         {contentBadges.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
+          <div className="flex flex-wrap gap-1 mt-3">
             {contentBadges.map((badge, index) => (
               <span
                 key={index}
@@ -181,7 +186,7 @@ const OptimizedDataTable = memo(({
     offsetY,
     totalHeight,
     handleScroll
-  } = useVirtualScrolling(data, 100, 600);
+  } = useVirtualScrolling(data, 110, 600);
 
   // Memoize column headers with proper names
   const columnHeaders = useMemo(() => {
@@ -297,7 +302,7 @@ const OptimizedDataTable = memo(({
           <div style={{ transform: `translateY(${offsetY}px)` }}>
             {visibleDataWithIndices.map(({ rowData, actualIndex }) => (
               <div key={actualIndex} className="flex hover:bg-gray-50">
-                <div className="w-20 px-4 py-3 text-sm text-gray-500 border-b border-gray-200 bg-gray-50 flex-shrink-0 font-medium">
+                <div className="w-20 px-4 py-4 text-sm text-gray-500 border-b border-gray-200 bg-gray-50 flex-shrink-0 font-medium">
                   {actualIndex + 1}
                 </div>
                 {rowData.map((cell, colIndex) => {
