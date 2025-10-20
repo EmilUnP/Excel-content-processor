@@ -271,11 +271,18 @@ export const translateBatchStructured = async (contentArray, targetLanguage = 'e
         messages: [
           {
             role: 'system',
-            content: `Translate to ${targetLanguageName}. Return JSON: {"translations": ["translated1", "translated2", ...]}`
+            content: `You are a professional translator. Translate the provided content to ${targetLanguageName}. 
+
+IMPORTANT RULES:
+- Do NOT add any numbering, bullets, or formatting
+- Do NOT add "1.", "2.", "3." or similar numbering
+- Translate the content exactly as provided
+- Maintain the original structure and meaning
+- Return JSON format: {"translations": ["translated1", "translated2", ...]}`
           },
           {
             role: 'user',
-            content: `Translate these ${batch.length} items:\n\n${batch.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
+            content: `Translate these ${batch.length} items to ${targetLanguageName}. Do NOT add any numbering, bullets, or formatting. Just translate the content exactly as provided:\n\n${batch.join('\n\n')}`
           }
         ],
         max_tokens: modelConfig.maxTokens,
