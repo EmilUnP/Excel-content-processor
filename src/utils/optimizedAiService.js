@@ -213,7 +213,7 @@ export const analyzeContent = async (content) => {
 };
 
 // Optimized batch translation with aggressive batching
-export const translateBatchStructured = async (contentArray, targetLanguage = 'en') => {
+export const translateBatchStructured = async (contentArray, targetLanguage = 'en', abortSignal = null) => {
   console.log('🚀 Optimized batch translation:', { count: contentArray.length, targetLanguage });
   
   translationCancelled = false;
@@ -244,6 +244,12 @@ export const translateBatchStructured = async (contentArray, targetLanguage = 'e
   });
 
   for (let i = 0; i < cleanedContent.length; i += BATCH_SIZE) {
+    // Check for cancellation via abort signal
+    if (abortSignal && abortSignal.aborted) {
+      console.log('🛑 Translation cancelled via abort signal');
+      throw new Error('Translation cancelled by user');
+    }
+    
     if (translationCancelled) {
       console.log('🛑 Translation cancelled');
       throw new Error('Translation cancelled by user');
@@ -274,10 +280,17 @@ export const translateBatchStructured = async (contentArray, targetLanguage = 'e
         headers: {
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json'
-        }
+        },
+        signal: abortSignal
       });
 
       if (translationCancelled) {
+        throw new Error('Translation cancelled by user');
+      }
+
+      // Check abort signal after API call
+      if (abortSignal && abortSignal.aborted) {
+        console.log('🛑 Translation cancelled via abort signal after API call');
         throw new Error('Translation cancelled by user');
       }
 
@@ -379,7 +392,7 @@ export const translateContent = async (content, targetLanguage = 'en') => {
   };
 
   try {
-    const result = await translateBatchStructured([content], targetLanguage);
+    const result = await translateBatchStructured([content], targetLanguage, null);
     debugEntry.success = true;
     debugEntry.result = result[0];
     debugEntry.duration = performance.now() - startTime;
