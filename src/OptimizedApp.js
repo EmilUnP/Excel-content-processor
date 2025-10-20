@@ -386,30 +386,32 @@ function OptimizedApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Toaster position="top-right" />
       
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-gradient-to-r from-slate-50 to-blue-50 shadow-lg border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-4 space-y-4 lg:space-y-0">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-6 space-y-4 lg:space-y-0">
             <div className="flex items-center">
-              <FileSpreadsheet className="h-8 w-8 text-blue-600 mr-3" />
+              <div className="h-12 w-12 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg mr-4">
+                <FileSpreadsheet className="h-7 w-7 text-white" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                   Excel Content Processor
                 </h1>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-slate-600 mt-1 font-medium">
                   AI-powered data processing and analysis
                 </p>
               </div>
             </div>
             {excelData && (
-              <div className="flex flex-wrap gap-2 justify-center lg:justify-end">
+              <div className="flex flex-wrap gap-3 justify-center lg:justify-end">
                 <button
                   onClick={handleBulkAnalyze}
                   disabled={isLoading}
-                  className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50 flex items-center text-sm"
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 rounded-xl hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Analyze
@@ -417,7 +419,7 @@ function OptimizedApp() {
                 <button
                   onClick={() => setShowLanguageSelector(true)}
                   disabled={isLoading}
-                  className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center text-sm"
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2.5 rounded-xl hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                 >
                   <Globe className="h-4 w-4 mr-2" />
                   Translate
@@ -425,7 +427,7 @@ function OptimizedApp() {
                 <button
                   onClick={handleSaveData}
                   disabled={isLoading}
-                  className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center text-sm"
+                  className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-2.5 rounded-xl hover:from-emerald-600 hover:to-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                 >
                   <Database className="h-4 w-4 mr-2" />
                   Save
@@ -433,21 +435,21 @@ function OptimizedApp() {
                 <button
                   onClick={handleLoadData}
                   disabled={isLoading}
-                  className="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center text-sm"
+                  className="bg-gradient-to-r from-purple-500 to-violet-500 text-white px-4 py-2.5 rounded-xl hover:from-purple-600 hover:to-violet-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Load
                 </button>
                 <button
                   onClick={handleExportOriginal}
-                  className="bg-emerald-600 text-white px-3 py-2 rounded-lg hover:bg-emerald-700 flex items-center text-sm"
+                  className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-4 py-2.5 rounded-xl hover:from-teal-600 hover:to-cyan-600 flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export
                 </button>
                 <button
                   onClick={() => setShowModelSelector(true)}
-                  className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 flex items-center text-sm"
+                  className="bg-gradient-to-r from-slate-500 to-gray-500 text-white px-4 py-2.5 rounded-xl hover:from-slate-600 hover:to-gray-600 flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Models
@@ -463,7 +465,7 @@ function OptimizedApp() {
         <div className="fixed top-4 right-4 z-[9999]">
           <button
             onClick={handleStopTranslation}
-            className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 flex items-center text-base shadow-2xl animate-pulse border-2 border-red-400 font-semibold"
+            className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-6 py-3 rounded-xl hover:from-red-600 hover:to-rose-600 flex items-center text-base font-semibold shadow-2xl hover:shadow-red-500/25 transition-all duration-200 transform hover:-translate-y-0.5 border-2 border-red-400 animate-pulse"
             style={{ 
               position: 'fixed',
               top: '16px',
@@ -480,10 +482,10 @@ function OptimizedApp() {
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-10 flex items-center justify-center z-40 pointer-events-none">
-          <div className="bg-white rounded-lg p-6 flex items-center space-x-3 shadow-xl pointer-events-auto">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span className="text-gray-700 font-medium">{loadingMessage}</span>
+        <div className="fixed inset-0 bg-gradient-to-br from-slate-900/20 to-blue-900/20 backdrop-blur-sm flex items-center justify-center z-40 pointer-events-none">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 flex items-center space-x-4 shadow-2xl pointer-events-auto border border-white/20">
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
+            <span className="text-slate-700 font-semibold text-lg">{loadingMessage}</span>
           </div>
         </div>
       )}
@@ -525,26 +527,26 @@ function OptimizedApp() {
         ) : (
           <div className="space-y-6">
             {/* Data Summary Card */}
-            <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                  <h2 className="text-xl font-bold text-slate-800 flex items-center">
                     <FileSpreadsheet className="h-5 w-5 mr-2 text-blue-600" />
                     Processed Data
                   </h2>
-                  <p className="text-gray-600 mt-1">
+                  <p className="text-slate-600 mt-1 font-medium">
                     {dataStats.rows} rows • {dataStats.columns} columns • {dataStats.totalCells} cells
                   </p>
                 </div>
                 <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                  <span className="text-green-600 text-sm font-medium">Ready</span>
+                  <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full animate-pulse"></div>
+                  <span className="text-green-600 text-sm font-semibold">Ready</span>
                 </div>
               </div>
             </div>
 
             {/* Optimized Data Table */}
-            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
               <OptimizedDataTable
                 data={excelData}
                 onCellEdit={handleCellEdit}

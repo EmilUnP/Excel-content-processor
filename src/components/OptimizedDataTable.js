@@ -46,9 +46,9 @@ const OptimizedTableCell = memo(({
   
   // Memoize cell styling
   const cellStyling = useMemo(() => {
-    if (!cell) return 'bg-gray-50 text-gray-400 italic';
+    if (!cell) return 'bg-slate-50 text-slate-400 italic';
     
-    const baseClasses = 'border-b border-gray-200';
+    const baseClasses = 'border-b border-slate-100';
     const isEmpty = !cell.cleaned || cell.cleaned.trim() === '';
     
     // Check if this is a correct answer (Code columns with value = 1)
@@ -56,9 +56,9 @@ const OptimizedTableCell = memo(({
     const isCodeColumn = colIndex === 4 || colIndex === 6 || colIndex === 8 || colIndex === 10;
     const isCorrectAnswer = isCodeColumn && cell?.cleaned === '1';
     
-    if (isEmpty) return `${baseClasses} bg-gray-50 text-gray-400 italic`;
-    if (isCorrectAnswer) return `${baseClasses} bg-green-50 text-green-900 hover:bg-green-100 border-l-4 border-l-green-400`;
-    return `${baseClasses} bg-white text-gray-900 hover:bg-gray-50`;
+    if (isEmpty) return `${baseClasses} bg-slate-50 text-slate-400 italic`;
+    if (isCorrectAnswer) return `${baseClasses} bg-gradient-to-r from-green-50 to-emerald-50 text-green-900 hover:bg-gradient-to-r hover:from-green-100 hover:to-emerald-100 border-l-4 border-l-green-400`;
+    return `${baseClasses} bg-white text-slate-900 hover:bg-slate-50/50`;
   }, [cell, colIndex]);
 
   if (isEditing) {
@@ -100,14 +100,14 @@ const OptimizedTableCell = memo(({
     const hasHtml = cell.hasHtml;
     const hasEntities = cell.hasEntities;
     
-    if (hasHtml) badges.push({ text: 'HTML', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' });
-    if (hasEntities) badges.push({ text: 'Entities', color: 'bg-orange-100 text-orange-700 border-orange-200' });
+    if (hasHtml) badges.push({ text: 'HTML', color: 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200 shadow-sm' });
+    if (hasEntities) badges.push({ text: 'Entities', color: 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-800 border border-orange-200 shadow-sm' });
     
     // Check if this is a correct answer (Code columns with value = 1)
     // Code columns are: 4, 6, 8, 10 (Code 1, Code 2, Code 3, Code 4)
     const isCodeColumn = colIndex === 4 || colIndex === 6 || colIndex === 8 || colIndex === 10;
     const isCorrectAnswer = isCodeColumn && cell?.cleaned === '1';
-    if (isCorrectAnswer) badges.push({ text: 'Correct', color: 'bg-green-100 text-green-700 border-green-200' });
+    if (isCorrectAnswer) badges.push({ text: 'Correct', color: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 shadow-sm' });
     
     return badges;
   };
@@ -147,17 +147,17 @@ const OptimizedTableCell = memo(({
         )}
       </div>
       
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1 ml-3 flex-shrink-0">
+      <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col space-y-2 ml-3 flex-shrink-0">
         <button
           onClick={() => handleEdit(rowIndex, colIndex, cell?.cleaned || '')}
-          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg border border-blue-200 hover:border-blue-300 transition-all"
+          className="p-2 text-blue-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg border border-blue-200 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
           title="Edit cell"
         >
           <Edit3 className="h-4 w-4" />
         </button>
         <button
           onClick={() => onCellDelete(rowIndex, colIndex)}
-          className="p-2 text-red-600 hover:bg-red-100 rounded-lg border border-red-200 hover:border-red-300 transition-all"
+          className="p-2 text-red-600 hover:bg-gradient-to-r hover:from-red-50 hover:to-rose-50 rounded-lg border border-red-200 hover:border-red-300 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
           title="Delete cell"
         >
           <Trash2 className="h-4 w-4" />
@@ -273,9 +273,9 @@ const OptimizedDataTable = memo(({
         onScroll={handleScroll}
       >
         {/* Header - positioned inside scroll container */}
-        <div className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+        <div className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200 sticky top-0 z-10 shadow-sm">
           <div className="flex">
-            <div className="w-20 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider flex-shrink-0">
+            <div className="w-20 px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider flex-shrink-0 bg-slate-100/50">
               Row
             </div>
             {columnHeaders.map((header, index) => {
@@ -289,7 +289,7 @@ const OptimizedDataTable = memo(({
               };
               
               return (
-                <div key={index} className={`flex-1 ${getColumnWidth(index)} px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider`}>
+                <div key={index} className={`flex-1 ${getColumnWidth(index)} px-3 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider bg-gradient-to-r from-slate-50 to-blue-50`}>
                   {header}
                 </div>
               );
@@ -301,8 +301,8 @@ const OptimizedDataTable = memo(({
         <div style={{ height: totalHeight, position: 'relative' }}>
           <div style={{ transform: `translateY(${offsetY}px)` }}>
             {visibleDataWithIndices.map(({ rowData, actualIndex }) => (
-              <div key={actualIndex} className="flex hover:bg-gray-50">
-                <div className="w-20 px-4 py-4 text-sm text-gray-500 border-b border-gray-200 bg-gray-50 flex-shrink-0 font-medium">
+              <div key={actualIndex} className="flex hover:bg-slate-50/50 transition-colors duration-150 border-b border-slate-100">
+                <div className="w-20 px-4 py-4 text-sm text-slate-500 bg-slate-50/30 flex-shrink-0 font-semibold border-r border-slate-200">
                   {actualIndex + 1}
                 </div>
                 {rowData.map((cell, colIndex) => {
