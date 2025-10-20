@@ -345,10 +345,34 @@ function OptimizedApp() {
     try {
       // Collect unique content for translation
       const contentToTranslate = new Set();
-      excelData.forEach((row) => {
-        row.forEach((cell) => {
+      let totalCells = 0;
+      let emptyCells = 0;
+      let duplicateContent = 0;
+      let filteredContent = 0;
+      
+      excelData.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
+          totalCells++;
           if (cell.cleaned && cell.cleaned.trim()) {
-            contentToTranslate.add(cell.cleaned.trim());
+            const content = cell.cleaned.trim();
+            // Filter out very short content, numbers only, or common words
+            if (content.length > 2 && 
+                !/^\d+$/.test(content) && // Not just numbers
+                !/^[A-Za-z]{1,2}$/.test(content) && // Not just 1-2 letters
+                content !== '0' && content !== '1' && // Not just 0 or 1
+                content !== 'true' && content !== 'false' && // Not boolean values
+                content !== 'yes' && content !== 'no' // Not yes/no
+            ) {
+              if (contentToTranslate.has(content)) {
+                duplicateContent++;
+              }
+              contentToTranslate.add(content);
+            } else {
+              filteredContent++;
+              console.log('🚫 Filtered out content:', content);
+            }
+          } else {
+            emptyCells++;
           }
         });
       });
@@ -356,6 +380,14 @@ function OptimizedApp() {
       const uniqueContent = Array.from(contentToTranslate);
       console.log(`🔄 Found ${uniqueContent.length} unique pieces of content to translate`);
       console.log('📊 Current excelData:', { rows: excelData.length, totalCells: excelData.length * (excelData[0]?.length || 0) });
+      console.log('📊 Content analysis:', { 
+        totalCells, 
+        emptyCells, 
+        filteredContent,
+        uniqueContent: uniqueContent.length, 
+        duplicateContent,
+        sampleContent: uniqueContent.slice(0, 5)
+      });
 
       if (isTranslationStopped) {
         // Translation stopped
