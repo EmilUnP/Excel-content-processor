@@ -181,7 +181,7 @@ export const parseExcelFile = async (file) => {
   });
 };
 
-// Optimized Excel export
+// Optimized Excel export (cleaned data)
 export const exportToExcel = (data, filename = 'exported_data.xlsx') => {
   try {
     // Convert data back to simple array format
@@ -210,10 +210,49 @@ export const exportToExcel = (data, filename = 'exported_data.xlsx') => {
     XLSX.utils.book_append_sheet(wb, ws, 'Data');
     XLSX.writeFile(wb, filename);
 
-    console.log('✅ Excel file exported:', filename);
+    console.log('✅ Excel file exported (cleaned):', filename);
   } catch (error) {
     console.error('Error exporting Excel file:', error);
     throw new Error('Failed to export Excel file: ' + error.message);
+  }
+};
+
+// Export with original formatting (preserves HTML, entities, etc.)
+export const exportToExcelWithFormatting = (data, filename = 'exported_data_formatted.xlsx') => {
+  try {
+    // Convert data back to array format preserving original formatting
+    const exportData = data.map(row => 
+      row.map(cell => {
+        // Use original content if available, otherwise use cleaned
+        return cell.original || cell.cleaned || '';
+      })
+    );
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(exportData);
+
+    // Set column widths for better readability
+    const colWidths = [];
+    for (let i = 0; i < (data[0]?.length || 0); i++) {
+      let maxLength = 10; // Minimum width
+      for (let j = 0; j < Math.min(data.length, 100); j++) { // Check first 100 rows
+        const cellValue = data[j]?.[i]?.original || data[j]?.[i]?.cleaned || '';
+        if (cellValue.length > maxLength) {
+          maxLength = Math.min(cellValue.length, 50); // Cap at 50 characters
+        }
+      }
+      colWidths.push({ wch: maxLength });
+    }
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    XLSX.writeFile(wb, filename);
+
+    console.log('✅ Excel file exported (with formatting):', filename);
+  } catch (error) {
+    console.error('Error exporting Excel file with formatting:', error);
+    throw new Error('Failed to export Excel file with formatting: ' + error.message);
   }
 };
 

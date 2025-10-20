@@ -7,7 +7,7 @@ import LanguageSelector from './components/LanguageSelector';
 import DebugPage from './components/DebugPage';
 import ModelSelector from './components/ModelSelector';
 import ErrorBoundary from './components/ErrorBoundary';
-import { parseExcelFile, exportToExcel, clearExcelCache } from './utils/optimizedExcelParser';
+import { parseExcelFile, exportToExcel, exportToExcelWithFormatting, clearExcelCache } from './utils/optimizedExcelParser';
 import { analyzeContent, translateBatchStructured, cancelTranslation, resetTranslationCancellation, clearCaches } from './utils/optimizedAiService';
 import { API_ENDPOINTS } from './utils/constants';
 import { FileSpreadsheet, Download, Globe, Database, BarChart3, Upload, Settings, X } from 'lucide-react';
@@ -566,10 +566,18 @@ function OptimizedApp() {
     handleBulkTranslate(languageCode);
   }, [handleBulkTranslate]);
 
-  // Optimized export
+  // Optimized export (cleaned data)
   const handleExportOriginal = useCallback(() => {
     if (!excelData) return;
     exportToExcel(excelData, 'processed_data.xlsx');
+    toast.success('Data exported (cleaned format)', { duration: 2000 });
+  }, [excelData]);
+
+  // Export with original formatting (preserves HTML, entities, etc.)
+  const handleExportFormatted = useCallback(() => {
+    if (!excelData) return;
+    exportToExcelWithFormatting(excelData, 'processed_data_formatted.xlsx');
+    toast.success('Data exported (with original formatting)', { duration: 2000 });
   }, [excelData]);
 
   // Cleanup on unmount
@@ -660,7 +668,14 @@ function OptimizedApp() {
                   className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-4 py-2.5 rounded-xl hover:from-teal-600 hover:to-cyan-600 flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Export
+                  Export Clean
+                </button>
+                <button
+                  onClick={handleExportFormatted}
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-2.5 rounded-xl hover:from-orange-600 hover:to-amber-600 flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Formatted
                 </button>
                 <button
                   onClick={() => setShowModelSelector(true)}
