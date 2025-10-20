@@ -24,6 +24,7 @@ function OptimizedApp() {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [isTranslationStopped, setIsTranslationStopped] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Processing data...');
 
   // Refs for performance optimization
   const translationAbortController = useRef(null);
@@ -173,6 +174,7 @@ function OptimizedApp() {
     if (!excelData) return;
 
     setIsLoading(true);
+    setLoadingMessage('Analyzing content...');
     
     // Clear any existing analysis timeout
     if (analysisTimeoutRef.current) {
@@ -252,10 +254,7 @@ function OptimizedApp() {
       'en': 'English', 'ru': 'Russian', 'az': 'Azerbaijani', 'tr': 'Turkish'
     };
     
-    const loadingToast = toast.loading(`Translating to ${languageNames[targetLanguage] || 'English'}...`, {
-      duration: Infinity,
-      position: 'top-right'
-    });
+    setLoadingMessage(`Translating to ${languageNames[targetLanguage] || 'English'}...`);
     
     try {
       // Collect unique content for translation
@@ -272,7 +271,7 @@ function OptimizedApp() {
       console.log(`🔄 Found ${uniqueContent.length} unique pieces of content to translate`);
 
       if (isTranslationStopped) {
-        toast.dismiss(loadingToast);
+        // Translation stopped
         toast.info('Translation stopped', { duration: 2000 });
         return;
       }
@@ -281,7 +280,7 @@ function OptimizedApp() {
       const translations = await translateBatchStructured(uniqueContent, targetLanguage);
       
       if (isTranslationStopped) {
-        toast.dismiss(loadingToast);
+        // Translation stopped
         toast.info('Translation stopped', { duration: 2000 });
         return;
       }
@@ -309,18 +308,18 @@ function OptimizedApp() {
       
       setExcelData(translatedData);
       
-      toast.dismiss(loadingToast);
+      // Translation completed
       toast.success(`Successfully translated to ${languageNames[targetLanguage] || 'English'}!`, {
         duration: 3000,
         position: 'top-right'
       });
     } catch (error) {
       if (error.name === 'AbortError') {
-        toast.dismiss(loadingToast);
+        // Translation stopped
         toast.info('Translation cancelled', { duration: 2000 });
       } else {
         console.error('Bulk translation failed:', error);
-        toast.dismiss(loadingToast);
+        // Translation stopped
         toast.error('Translation failed: ' + error.message);
       }
     } finally {
@@ -476,7 +475,7 @@ function OptimizedApp() {
         <div className="fixed inset-0 bg-black bg-opacity-10 flex items-center justify-center z-40 pointer-events-none">
           <div className="bg-white rounded-lg p-6 flex items-center space-x-3 shadow-xl pointer-events-auto">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span className="text-gray-700 font-medium">Processing data...</span>
+            <span className="text-gray-700 font-medium">{loadingMessage}</span>
           </div>
         </div>
       )}
