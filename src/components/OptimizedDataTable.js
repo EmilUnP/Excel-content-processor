@@ -51,7 +51,11 @@ const OptimizedTableCell = memo(({
     const baseClasses = 'border-b border-gray-200';
     const isEmpty = !cell.cleaned || cell.cleaned.trim() === '';
     
+    // Check if this is a correct answer (Code = 1)
+    const isCorrectAnswer = isAnswerColumn && cell?.cleaned === '1';
+    
     if (isEmpty) return `${baseClasses} bg-gray-50 text-gray-400 italic`;
+    if (isCorrectAnswer) return `${baseClasses} bg-green-50 text-green-900 hover:bg-green-100 border-l-4 border-l-green-400`;
     return `${baseClasses} bg-white text-gray-900 hover:bg-gray-50`;
   }, [cell, isAnswerColumn]);
 
@@ -96,7 +100,10 @@ const OptimizedTableCell = memo(({
     
     if (hasHtml) badges.push({ text: 'HTML', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' });
     if (hasEntities) badges.push({ text: 'Entities', color: 'bg-orange-100 text-orange-700 border-orange-200' });
-    if (isAnswerColumn) badges.push({ text: 'Answer', color: 'bg-blue-100 text-blue-700 border-blue-200' });
+    
+    // Check if this is a correct answer (Code = 1)
+    const isCorrectAnswer = isAnswerColumn && cell?.cleaned === '1';
+    if (isCorrectAnswer) badges.push({ text: 'Correct', color: 'bg-green-100 text-green-700 border-green-200' });
     
     return badges;
   };
