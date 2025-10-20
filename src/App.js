@@ -6,7 +6,6 @@ import AnalysisPanel from './components/AnalysisPanel';
 import LanguageSelector from './components/LanguageSelector';
 import DebugPage from './components/DebugPage';
 import ModelSelector from './components/ModelSelector';
-import RangeSelector from './components/RangeSelector';
 import ErrorBoundary from './components/ErrorBoundary';
 import { parseExcelFile, exportToExcel } from './utils/excelParser';
 import { analyzeContent, translateBatchStructured, cancelTranslation, resetTranslationCancellation } from './utils/aiService';
@@ -23,8 +22,6 @@ function App() {
   const [showDebugPage, setShowDebugPage] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
-  const [showRangeSelector, setShowRangeSelector] = useState(false);
-  const [translationRange, setTranslationRange] = useState({ start: 1, end: 1 });
   const [isTranslationStopped, setIsTranslationStopped] = useState(false);
 
   // Check for saved data on component mount
@@ -223,8 +220,8 @@ function App() {
 
 
 
-  const handleBulkTranslate = useCallback(async (targetLanguage = 'en', useRange = false) => {
-    console.log('🚀 handleBulkTranslate called with:', { targetLanguage, hasData: !!excelData, useRange, range: translationRange });
+  const handleBulkTranslate = useCallback(async (targetLanguage = 'en') => {
+    console.log('🚀 handleBulkTranslate called with:', { targetLanguage, hasData: !!excelData });
     if (!excelData) return;
 
     setIsLoading(true);
@@ -236,20 +233,16 @@ function App() {
       'en': 'English', 'ru': 'Russian', 'az': 'Azerbaijani', 'tr': 'Turkish'
     };
     
-    const rangeText = useRange ? ` (rows ${translationRange.start}-${translationRange.end})` : '';
-    const loadingToast = toast.loading(`Translating to ${languageNames[targetLanguage] || 'English'}${rangeText}...`, {
+    const loadingToast = toast.loading(`Translating to ${languageNames[targetLanguage] || 'English'}...`, {
       duration: Infinity,
       position: 'top-right'
     });
     
     try {
-      // Collect content that needs translation (with range support)
+      // Collect all unique content that needs translation
       const contentToTranslate = new Set();
-      const dataToProcess = useRange 
-        ? excelData.slice(translationRange.start - 1, translationRange.end)
-        : excelData;
       
-      dataToProcess.forEach((row) => {
+      excelData.forEach((row) => {
         row.forEach((cell) => {
           if (cell.cleaned && cell.cleaned.trim()) {
             contentToTranslate.add(cell.cleaned.trim());
@@ -258,7 +251,7 @@ function App() {
       });
 
       const uniqueContent = Array.from(contentToTranslate);
-      console.log(`🔄 Found ${uniqueContent.length} unique pieces of content to translate${rangeText}`);
+      console.log(`🔄 Found ${uniqueContent.length} unique pieces of content to translate`);
 
       // Check if translation was stopped before starting
       if (isTranslationStopped) {
@@ -289,46 +282,26 @@ function App() {
 
       console.log(`✅ Batch translation completed!`);
 
-      // Apply translations to the appropriate data range
-      const translatedData = [...excelData];
-      
-      if (useRange) {
-        // Apply translations only to the selected range
-        for (let i = translationRange.start - 1; i < translationRange.end && i < excelData.length; i++) {
-          translatedData[i] = excelData[i].map((cell) => {
-            if (cell.cleaned && cell.cleaned.trim()) {
-              const translated = translationMap.get(cell.cleaned.trim()) || cell.cleaned;
-              return {
-                ...cell,
-                cleaned: translated,
-                original: translated
-              };
-            }
-            return cell;
-          });
-        }
-      } else {
-        // Apply translations to all data
-        translatedData.forEach((row, rowIndex) => {
-          translatedData[rowIndex] = row.map((cell) => {
-            if (cell.cleaned && cell.cleaned.trim()) {
-              const translated = translationMap.get(cell.cleaned.trim()) || cell.cleaned;
-              return {
-                ...cell,
-                cleaned: translated,
-                original: translated
-              };
-            }
-            return cell;
-          });
-        });
-      }
+      // Apply translations to all data
+      const translatedData = excelData.map((row) => 
+        row.map((cell) => {
+          if (cell.cleaned && cell.cleaned.trim()) {
+            const translated = translationMap.get(cell.cleaned.trim()) || cell.cleaned;
+            return {
+              ...cell,
+              cleaned: translated,
+              original: translated
+            };
+          }
+          return cell;
+        })
+      );
       
       setExcelData(translatedData);
       
       // Dismiss loading toast and show success
       toast.dismiss(loadingToast);
-      toast.success(`Successfully translated to ${languageNames[targetLanguage] || 'English'}${rangeText}!`, {
+      toast.success(`Successfully translated to ${languageNames[targetLanguage] || 'English'}!`, {
         duration: 3000,
         position: 'top-right'
       });
@@ -342,7 +315,7 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [excelData, translationRange, isTranslationStopped]);
+  }, [excelData, isTranslationStopped]);
 
   // Data analysis function for comprehensive reporting
   const analyzeData = useCallback((data) => {
@@ -399,17 +372,10 @@ function App() {
     setIsTranslationStopped(true);
     setIsLoading(false);
     cancelTranslation();
+    toast.dismiss(); // Dismiss any loading toasts
     toast.info('Translation stopped by user', { duration: 2000, position: 'top-right' });
   }, []);
 
-  const handleRangeSelect = useCallback((start, end) => {
-    setTranslationRange({ start, end });
-    setShowRangeSelector(false);
-  }, []);
-
-  const handleRangeTranslate = useCallback((targetLanguage) => {
-    handleBulkTranslate(targetLanguage, true);
-  }, [handleBulkTranslate]);
 
   const handleCloseLanguageSelector = useCallback(() => {
     setShowLanguageSelector(false);
@@ -467,15 +433,7 @@ function App() {
                   className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center text-sm"
                 >
                   <Globe className="h-4 w-4 mr-2" />
-                  Translate All
-                </button>
-                <button
-                  onClick={() => setShowRangeSelector(true)}
-                  disabled={isLoading}
-                  className="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center text-sm"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Translate Range
+                  Translate
                 </button>
                 {isLoading && (
                   <button
@@ -664,15 +622,6 @@ function App() {
         onClose={() => setShowModelSelector(false)}
       />
 
-      {/* Range Selector Modal */}
-      <RangeSelector
-        isVisible={showRangeSelector}
-        onClose={() => setShowRangeSelector(false)}
-        onRangeSelect={handleRangeSelect}
-        onRangeTranslate={handleRangeTranslate}
-        totalRows={excelData?.length || 0}
-        currentLanguage={selectedLanguage}
-      />
 
     </div>
   );

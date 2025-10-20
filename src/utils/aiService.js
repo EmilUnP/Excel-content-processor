@@ -344,6 +344,9 @@ const getFallbackAnalysis = (content) => {
 export const translateBatchStructured = async (contentArray, targetLanguage = 'en') => {
   console.log('🔄 translateBatchStructured called with:', { count: contentArray.length, targetLanguage });
   
+  // Reset cancellation flag at start
+  translationCancelled = false;
+  
   if (!isOpenAIAvailable()) {
     console.log('⚠️ OpenAI API key not available, using fallback translation');
     return contentArray.map(content => cleanContentForTranslation(content));
@@ -372,7 +375,7 @@ export const translateBatchStructured = async (contentArray, targetLanguage = 'e
 async function translateBatchWithStructuredOutput(contentArray, targetLanguage, targetLanguageName, selectedModel, modelConfig) {
   console.log('🎯 Using structured output for translation');
   
-  const BATCH_SIZE = 20; // Smaller batches for structured output
+  const BATCH_SIZE = 60; // Optimized batch size for GPT-4o structured output
   const allTranslations = [];
   
   for (let i = 0; i < contentArray.length; i += BATCH_SIZE) {
@@ -396,11 +399,11 @@ async function translateBatchWithStructuredOutput(contentArray, targetLanguage, 
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the given content to ${targetLanguageName}. Return a JSON array where each element is the translated text in the same order as the input.`
+            content: `You are a professional translator. Translate the given content to ${targetLanguageName}. You must return a JSON object with a "translations" key containing an array of translated texts in the exact same order as the input. Format: {"translations": ["translated1", "translated2", ...]}`
           },
           {
             role: 'user',
-            content: `Translate these ${batch.length} items to ${targetLanguageName} and return as JSON array: ${JSON.stringify(cleanedContent)}`
+            content: `Translate these ${batch.length} items to ${targetLanguageName}. Return as JSON object with "translations" array:\n\n${cleanedContent.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
           }
         ],
         max_tokens: modelConfig.maxTokens,
@@ -418,14 +421,43 @@ async function translateBatchWithStructuredOutput(contentArray, targetLanguage, 
       const aiResponse = response.data.choices[0].message.content;
       console.log('🤖 Structured response received');
       
+      // Check for cancellation after API call
+      if (translationCancelled) {
+        console.log('🛑 Translation cancelled after API call');
+        throw new Error('Translation cancelled by user');
+      }
+      
       try {
         const jsonResponse = JSON.parse(aiResponse);
-        const translations = Array.isArray(jsonResponse) ? jsonResponse : Object.values(jsonResponse);
         
-        // Ensure we have the right number of translations
-        const paddedTranslations = translations.slice(0, batch.length);
-        while (paddedTranslations.length < batch.length) {
-          paddedTranslations.push(cleanedContent[paddedTranslations.length]);
+        // Extract translations from the JSON response
+        let translations = [];
+        if (jsonResponse.translations && Array.isArray(jsonResponse.translations)) {
+          translations = jsonResponse.translations;
+        } else if (Array.isArray(jsonResponse)) {
+          translations = jsonResponse;
+        } else {
+          // Fallback: try to extract values from object
+          translations = Object.values(jsonResponse);
+        }
+        
+        // Ensure we have the right number of translations and maintain order
+        const paddedTranslations = [];
+        let missingCount = 0;
+        
+        for (let i = 0; i < batch.length; i++) {
+          if (i < translations.length && translations[i] && translations[i].trim()) {
+            paddedTranslations.push(translations[i]);
+          } else {
+            // If translation is missing, use original content
+            missingCount++;
+            console.warn(`⚠️ Missing translation for structured item ${i + 1}, using original`);
+            paddedTranslations.push(cleanedContent[i]);
+          }
+        }
+        
+        if (missingCount > 0) {
+          console.warn(`⚠️ Structured batch: ${missingCount}/${batch.length} translations missing`);
         }
         
         allTranslations.push(...paddedTranslations);
@@ -478,13 +510,19 @@ async function translateBatchWithStructuredOutput(contentArray, targetLanguage, 
 async function translateBatchLegacy(contentArray, targetLanguage, targetLanguageName, selectedModel, modelConfig) {
   console.log('🔄 Using legacy batch translation method');
   
-  let BATCH_SIZE = 50;
+  let BATCH_SIZE = 60; // Increased batch size for better models
   const MAX_CONTENT_LENGTH = 2000;
-  const MAX_REQUEST_SIZE = 12000;
+  const MAX_REQUEST_SIZE = 15000; // Increased request size limit
   
   const allTranslations = [];
   
   for (let i = 0; i < contentArray.length; i += BATCH_SIZE) {
+    // Check for cancellation before processing each batch
+    if (translationCancelled) {
+      console.log('🛑 Translation cancelled during legacy batch processing');
+      throw new Error('Translation cancelled by user');
+    }
+
     const batch = contentArray.slice(i, i + BATCH_SIZE);
     console.log(`🔄 Processing legacy batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(contentArray.length/BATCH_SIZE)} (${batch.length} items)`);
     
@@ -503,7 +541,7 @@ async function translateBatchLegacy(contentArray, targetLanguage, targetLanguage
       continue;
     }
     
-    const batchPrompt = `Translate the following ${batch.length} items to ${targetLanguageName}. Return only the translations in the same order, one per line, with no explanations or additional text:\n\n${cleanedContent.map((content, index) => `${index + 1}. ${content}`).join('\n')}`;
+    const batchPrompt = `Translate the following ${batch.length} items to ${targetLanguageName}. Return ONLY the translations in the exact same order, one per line, with no explanations, numbering, or additional text. Each line must contain only the translated text:\n\n${cleanedContent.map((content, index) => `${index + 1}. ${content}`).join('\n')}`;
 
     try {
       const apiRequest = {
@@ -511,7 +549,7 @@ async function translateBatchLegacy(contentArray, targetLanguage, targetLanguage
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the given content to ${targetLanguageName}. Return ONLY the translated text with no explanations, prefixes, or additional text.`
+            content: `You are a professional translator. Translate the given content to ${targetLanguageName}. Return ONLY the translated text with no explanations, prefixes, numbering, or additional text. Each line must contain only the translated text.`
           },
           {
             role: 'user',
@@ -530,7 +568,40 @@ async function translateBatchLegacy(contentArray, targetLanguage, targetLanguage
       });
 
       const aiResponse = response.data.choices[0].message.content;
-      const translations = aiResponse.split('\n').map(line => line.replace(/^\d+\.\s*/, '').trim());
+      
+      // Check for cancellation after API call
+      if (translationCancelled) {
+        console.log('🛑 Translation cancelled after legacy API call');
+        throw new Error('Translation cancelled by user');
+      }
+      
+      // Parse translations more carefully to maintain order
+      const responseLines = aiResponse.split('\n').filter(line => line.trim());
+      const translations = [];
+      let missingCount = 0;
+      
+      for (let i = 0; i < batch.length; i++) {
+        if (i < responseLines.length) {
+          // Remove any numbering and clean the line
+          const cleanedLine = responseLines[i].replace(/^\d+\.\s*/, '').trim();
+          if (cleanedLine) {
+            translations.push(cleanedLine);
+          } else {
+            missingCount++;
+            console.warn(`⚠️ Empty translation for legacy item ${i + 1}, using original`);
+            translations.push(cleanedContent[i]);
+          }
+        } else {
+          // If we don't have enough translations, use original content
+          missingCount++;
+          console.warn(`⚠️ Missing translation for legacy item ${i + 1}, using original`);
+          translations.push(cleanedContent[i]);
+        }
+      }
+      
+      if (missingCount > 0) {
+        console.warn(`⚠️ Legacy batch: ${missingCount}/${batch.length} translations missing`);
+      }
 
       addDebugEntry({
         type: 'Legacy Batch Translation',
