@@ -434,7 +434,7 @@ function OptimizedApp() {
       console.log('📊 COLUMN BREAKDOWN:');
       Object.keys(columnStats).forEach(colIndex => {
         const stats = columnStats[colIndex];
-        const colName = colIndex == 2 ? 'Question' : 
+        const colName = colIndex === 2 ? 'Question' : 
                        [3,5,7,9].includes(parseInt(colIndex)) ? 'Variant' : 
                        [0,1].includes(parseInt(colIndex)) ? 'ID' : 
                        [4,6,8,10].includes(parseInt(colIndex)) ? 'Code' : 'Other';
