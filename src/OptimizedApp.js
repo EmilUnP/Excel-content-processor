@@ -349,6 +349,7 @@ function OptimizedApp() {
       let emptyCells = 0;
       let duplicateContent = 0;
       let filteredContent = 0;
+      let columnStats = {}; // Track content by column
       
       excelData.forEach((row, rowIndex) => {
         row.forEach((cell, colIndex) => {
@@ -360,6 +361,12 @@ function OptimizedApp() {
             const isQuestionColumn = colIndex === 2; // Question column
             const isVariantColumn = colIndex === 3 || colIndex === 5 || colIndex === 7 || colIndex === 9; // Variant columns
             const shouldTranslate = isQuestionColumn || isVariantColumn;
+            
+            // Track column statistics
+            if (!columnStats[colIndex]) {
+              columnStats[colIndex] = { total: 0, translated: 0, filtered: 0, empty: 0 };
+            }
+            columnStats[colIndex].total++;
             
             // Debug: Log first few items to see column structure
             if (rowIndex < 3 && colIndex < 5) {
@@ -379,10 +386,13 @@ function OptimizedApp() {
             ) {
               if (contentToTranslate.has(content)) {
                 duplicateContent++;
+              } else {
+                contentToTranslate.add(content);
+                columnStats[colIndex].translated++;
               }
-              contentToTranslate.add(content);
             } else {
               filteredContent++;
+              columnStats[colIndex].filtered++;
               if (!shouldTranslate) {
                 console.log(`🚫 Skipped column ${colIndex}:`, content);
               } else {
@@ -391,6 +401,10 @@ function OptimizedApp() {
             }
           } else {
             emptyCells++;
+            if (!columnStats[colIndex]) {
+              columnStats[colIndex] = { total: 0, translated: 0, filtered: 0, empty: 0 };
+            }
+            columnStats[colIndex].empty++;
           }
         });
       });
@@ -415,6 +429,17 @@ function OptimizedApp() {
       console.log(`- Filtered out: ${filteredContent}`);
       console.log(`- UNIQUE ITEMS TO TRANSLATE: ${uniqueContent.length}`);
       console.log(`- Only translating Question column (2) and Variant columns (3,5,7,9)`);
+      
+      // Show column breakdown
+      console.log('📊 COLUMN BREAKDOWN:');
+      Object.keys(columnStats).forEach(colIndex => {
+        const stats = columnStats[colIndex];
+        const colName = colIndex == 2 ? 'Question' : 
+                       [3,5,7,9].includes(parseInt(colIndex)) ? 'Variant' : 
+                       [0,1].includes(parseInt(colIndex)) ? 'ID' : 
+                       [4,6,8,10].includes(parseInt(colIndex)) ? 'Code' : 'Other';
+        console.log(`  Column ${colIndex} (${colName}): ${stats.translated} translated, ${stats.filtered} filtered, ${stats.empty} empty`);
+      });
       
       // Show some examples of what's being translated
       console.log('📝 Sample content being translated:');
