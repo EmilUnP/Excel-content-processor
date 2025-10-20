@@ -234,8 +234,9 @@ const OptimizedDataTable = memo(({
 
   // Memoize cell styling function
   const getCellStyling = useCallback((cell, colIndex) => {
-    const isAnswerColumn = colIndex === 1; // Assuming column 1 is answers
-    return { isAnswerColumn };
+  // Determine if this is an answer column (Variant/Code columns)
+  const isAnswerColumn = colIndex >= 3 && colIndex <= 10; // Variant and Code columns (3-11)
+  return { isAnswerColumn };
   }, []);
 
   if (!data || data.length === 0) {
