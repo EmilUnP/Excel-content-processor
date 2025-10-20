@@ -359,14 +359,23 @@ function OptimizedApp() {
             // Also, only translate Question column (index 2) and Variant columns (3,5,7,9)
             const isQuestionColumn = colIndex === 2; // Question column
             const isVariantColumn = colIndex === 3 || colIndex === 5 || colIndex === 7 || colIndex === 9; // Variant columns
-            const shouldTranslate = isQuestionColumn || isVariantColumn;
+            // const shouldTranslate = isQuestionColumn || isVariantColumn;
             
-            if (shouldTranslate && content.length > 2 && 
+            // Debug: Log first few items to see column structure
+            if (rowIndex < 3 && colIndex < 5) {
+              console.log(`Row ${rowIndex}, Col ${colIndex}: "${content}" (isQuestion: ${isQuestionColumn}, isVariant: ${isVariantColumn})`);
+            }
+            
+            // TEMPORARILY DISABLE COLUMN FILTERING TO TEST
+            const shouldTranslate = true; // Test: translate all columns for now
+            
+            if (shouldTranslate && content.length > 5 && // Increased minimum length
                 !/^\d+$/.test(content) && // Not just numbers
-                !/^[A-Za-z]{1,2}$/.test(content) && // Not just 1-2 letters
+                !/^[A-Za-z]{1,3}$/.test(content) && // Not just 1-3 letters
                 content !== '0' && content !== '1' && // Not just 0 or 1
                 content !== 'true' && content !== 'false' && // Not boolean values
-                content !== 'yes' && content !== 'no' // Not yes/no
+                content !== 'yes' && content !== 'no' && // Not yes/no
+                !content.match(/^[A-Za-z0-9\s]{1,5}$/) // Not short alphanumeric strings
             ) {
               if (contentToTranslate.has(content)) {
                 duplicateContent++;
