@@ -26,10 +26,47 @@ function OptimizedApp() {
   const [isTranslationStopped, setIsTranslationStopped] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Processing data...');
   const [translationProgress, setTranslationProgress] = useState({ current: 0, total: 0 });
+  const [sessionId, setSessionId] = useState(null);
 
   // Refs for performance optimization
   const translationAbortController = useRef(null);
   const analysisTimeoutRef = useRef(null);
+
+  // Session management functions
+  const startSession = useCallback(async (operation) => {
+    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setSessionId(newSessionId);
+    
+    try {
+      await fetch('http://localhost:3001/api/session/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: newSessionId, operation })
+      });
+      console.log(`🔄 Session started: ${newSessionId} - ${operation}`);
+    } catch (error) {
+      console.error('Failed to start session:', error);
+    }
+    
+    return newSessionId;
+  }, []);
+
+  const stopSession = useCallback(async () => {
+    if (!sessionId) return;
+    
+    try {
+      await fetch('http://localhost:3001/api/session/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      });
+      console.log(`🛑 Session stopped: ${sessionId}`);
+    } catch (error) {
+      console.error('Failed to stop session:', error);
+    }
+    
+    setSessionId(null);
+  }, [sessionId]);
 
   // Memoized data statistics
   const dataStats = useMemo(() => {
@@ -41,6 +78,30 @@ function OptimizedApp() {
     
     return { rows, columns, totalCells };
   }, [excelData]);
+
+  // Cleanup on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (sessionId) {
+        // Send cleanup request
+        fetch('http://localhost:3001/api/session/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+          keepalive: true // Important for page unload
+        }).catch(() => {}); // Ignore errors during page unload
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Also cleanup on component unmount
+      if (sessionId) {
+        stopSession();
+      }
+    };
+  }, [sessionId, stopSession]);
 
   // Optimized data loading
   const checkForSavedData = useCallback(async () => {
@@ -252,6 +313,9 @@ function OptimizedApp() {
     setIsTranslationStopped(false);
     resetTranslationCancellation();
     
+    // Start session for translation
+    await startSession(`translation_${targetLanguage}`);
+    
     const languageNames = {
       'en': 'English', 'ru': 'Russian', 'az': 'Azerbaijani', 'tr': 'Turkish'
     };
@@ -361,12 +425,18 @@ function OptimizedApp() {
       console.log('✅ Data updated successfully');
       setExcelData(translatedData);
       
+      // Stop session after successful completion
+      await stopSession();
+      
       // Translation completed
       toast.success(`Successfully translated to ${languageNames[targetLanguage] || 'English'}!`, {
         duration: 3000,
         position: 'top-right'
       });
     } catch (error) {
+      // Stop session on error
+      await stopSession();
+      
       if (error.name === 'AbortError') {
         // Translation stopped
         toast('Translation cancelled', { duration: 2000 });
@@ -379,10 +449,10 @@ function OptimizedApp() {
       setIsLoading(false);
       translationAbortController.current = null;
     }
-  }, [excelData, isTranslationStopped]);
+  }, [excelData, isTranslationStopped, startSession, stopSession]);
 
   // Optimized stop translation
-  const handleStopTranslation = useCallback(() => {
+  const handleStopTranslation = useCallback(async () => {
     console.log('🛑 Stop translation requested');
     setIsTranslationStopped(true);
     setIsLoading(false);
@@ -391,10 +461,13 @@ function OptimizedApp() {
       translationAbortController.current.abort();
     }
     
+    // Stop session when stopping translation
+    await stopSession();
+    
     cancelTranslation();
     toast.dismiss();
     toast('Translation stopped by user', { duration: 2000 });
-  }, []);
+  }, [stopSession]);
 
   // Optimized language selection
   const handleLanguageSelect = useCallback((languageCode) => {

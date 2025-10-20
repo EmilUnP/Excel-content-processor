@@ -7,6 +7,9 @@ const app = express();
 const PORT = 3001;
 const DATA_FILE = path.join(__dirname, 'saved-data.json');
 
+// Session management for active operations
+const activeSessions = new Map();
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -67,6 +70,83 @@ app.post('/api/clear-data', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Session management endpoints
+app.post('/api/session/start', (req, res) => {
+  try {
+    const { sessionId, operation } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'Session ID required' });
+    }
+    
+    activeSessions.set(sessionId, {
+      operation,
+      startTime: Date.now(),
+      status: 'active'
+    });
+    
+    console.log(`🔄 Session started: ${sessionId} - ${operation}`);
+    res.json({ success: true, message: 'Session started' });
+  } catch (error) {
+    console.error('Session start error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/session/stop', (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'Session ID required' });
+    }
+    
+    if (activeSessions.has(sessionId)) {
+      const session = activeSessions.get(sessionId);
+      session.status = 'stopped';
+      session.endTime = Date.now();
+      
+      console.log(`🛑 Session stopped: ${sessionId} - Duration: ${session.endTime - session.startTime}ms`);
+      activeSessions.delete(sessionId);
+      
+      res.json({ success: true, message: 'Session stopped' });
+    } else {
+      res.json({ success: true, message: 'Session not found' });
+    }
+  } catch (error) {
+    console.error('Session stop error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/session/status', (req, res) => {
+  try {
+    const sessions = Array.from(activeSessions.entries()).map(([id, session]) => ({
+      sessionId: id,
+      operation: session.operation,
+      startTime: session.startTime,
+      status: session.status,
+      duration: Date.now() - session.startTime
+    }));
+    
+    res.json({ success: true, sessions });
+  } catch (error) {
+    console.error('Session status error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Cleanup inactive sessions (older than 5 minutes)
+setInterval(() => {
+  const now = Date.now();
+  const fiveMinutes = 5 * 60 * 1000;
+  
+  for (const [sessionId, session] of activeSessions.entries()) {
+    if (now - session.startTime > fiveMinutes) {
+      console.log(`🧹 Cleaning up inactive session: ${sessionId}`);
+      activeSessions.delete(sessionId);
+    }
+  }
+}, 60000); // Check every minute
 
 // Health check
 app.get('/api/health', (req, res) => {
