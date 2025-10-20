@@ -50,12 +50,8 @@ const OptimizedTableCell = memo(({
     
     const baseClasses = 'border-b border-gray-200';
     const isEmpty = !cell.cleaned || cell.cleaned.trim() === '';
-    const hasHtml = cell.hasHtml;
-    const hasEntities = cell.hasEntities;
     
     if (isEmpty) return `${baseClasses} bg-gray-50 text-gray-400 italic`;
-    if (hasHtml || hasEntities) return `${baseClasses} bg-yellow-50 text-yellow-800 border-l-4 border-l-yellow-400`;
-    if (isAnswerColumn) return `${baseClasses} bg-blue-50 text-blue-900 border-l-4 border-l-blue-400`;
     return `${baseClasses} bg-white text-gray-900 hover:bg-gray-50`;
   }, [cell, isAnswerColumn]);
 
@@ -90,15 +86,51 @@ const OptimizedTableCell = memo(({
     );
   }
 
+  // Determine content type for badges
+  const getContentBadges = () => {
+    if (!cell) return [];
+    
+    const badges = [];
+    const hasHtml = cell.hasHtml;
+    const hasEntities = cell.hasEntities;
+    
+    if (hasHtml) badges.push({ text: 'HTML', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' });
+    if (hasEntities) badges.push({ text: 'Entities', color: 'bg-orange-100 text-orange-700 border-orange-200' });
+    if (isAnswerColumn) badges.push({ text: 'Answer', color: 'bg-blue-100 text-blue-700 border-blue-200' });
+    
+    return badges;
+  };
+
+  const contentBadges = getContentBadges();
+
   return (
     <div className={`${cellStyling} group relative min-h-[80px] flex items-start p-3`}>
-      <div 
-        className="flex-1 break-words overflow-wrap-anywhere whitespace-pre-wrap max-w-full text-sm leading-relaxed" 
-        title={cell?.cleaned || ''}
-        style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
-      >
-        {cell?.cleaned || <span className="text-gray-400 italic">Empty</span>}
+      <div className="flex-1 flex flex-col">
+        {/* Cell content */}
+        <div 
+          className="break-words overflow-wrap-anywhere whitespace-pre-wrap max-w-full text-sm leading-relaxed flex-1" 
+          title={cell?.cleaned || ''}
+          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+        >
+          {cell?.cleaned || <span className="text-gray-400 italic">Empty</span>}
+        </div>
+        
+        {/* Content badges at bottom */}
+        {contentBadges.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {contentBadges.map((badge, index) => (
+              <span
+                key={index}
+                className={`px-2 py-1 text-xs font-medium rounded-full border ${badge.color}`}
+                title={`Content type: ${badge.text}`}
+              >
+                {badge.text}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
+      
       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1 ml-3 flex-shrink-0">
         <button
           onClick={() => handleEdit(rowIndex, colIndex, cell?.cleaned || '')}
