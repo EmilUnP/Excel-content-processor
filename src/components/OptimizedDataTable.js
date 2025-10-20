@@ -260,31 +260,6 @@ const OptimizedDataTable = memo(({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-      {/* Header */}
-      <div className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex">
-          <div className="w-20 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider flex-shrink-0">
-            Row
-          </div>
-          {columnHeaders.map((header, index) => {
-            // Match the same width logic as data rows
-            const getColumnWidth = (colIndex) => {
-              if (colIndex === 0) return 'min-w-[120px]'; // ID column
-              if (colIndex === 1) return 'min-w-[100px]'; // ID 2 column
-              if (colIndex === 2) return 'min-w-[300px]'; // Question column
-              if (colIndex >= 3 && colIndex <= 10) return 'min-w-[150px]'; // Variant/Code columns
-              return 'min-w-[120px]'; // Default width
-            };
-            
-            return (
-              <div key={index} className={`flex-1 ${getColumnWidth(index)} px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider`}>
-                {header}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Virtual scrolling container */}
       <div 
         ref={containerRef}
@@ -292,6 +267,32 @@ const OptimizedDataTable = memo(({
         style={{ height: '600px' }}
         onScroll={handleScroll}
       >
+        {/* Header - positioned inside scroll container */}
+        <div className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+          <div className="flex">
+            <div className="w-20 px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider flex-shrink-0">
+              Row
+            </div>
+            {columnHeaders.map((header, index) => {
+              // Match the same width logic as data rows
+              const getColumnWidth = (colIndex) => {
+                if (colIndex === 0) return 'min-w-[120px]'; // ID column
+                if (colIndex === 1) return 'min-w-[100px]'; // ID 2 column
+                if (colIndex === 2) return 'min-w-[300px]'; // Question column
+                if (colIndex >= 3 && colIndex <= 10) return 'min-w-[150px]'; // Variant/Code columns
+                return 'min-w-[120px]'; // Default width
+              };
+              
+              return (
+                <div key={index} className={`flex-1 ${getColumnWidth(index)} px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider`}>
+                  {header}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Data rows */}
         <div style={{ height: totalHeight, position: 'relative' }}>
           <div style={{ transform: `translateY(${offsetY}px)` }}>
             {visibleDataWithIndices.map(({ rowData, actualIndex }) => (
