@@ -48,55 +48,108 @@ const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 // Optimized models configuration
 const OPTIMIZED_MODELS = {
   TRANSLATION: {
-    'gpt-4o': {
-      name: 'GPT-4o',
-      description: 'Best quality with optimized performance',
-      maxTokens: 6000, // Increased for better batching
-      cost: 'high',
-      structuredOutput: true,
-      contextWindow: 128000,
-      batchSize: 80 // Optimized batch size
-    },
-    'gpt-4-turbo': {
-      name: 'GPT-4 Turbo',
-      description: 'Fast and efficient',
-      maxTokens: 6000,
-      cost: 'high',
-      structuredOutput: true,
-      contextWindow: 128000,
-      batchSize: 80
-    },
     'gpt-3.5-turbo-16k': {
       name: 'GPT-3.5 Turbo 16K',
       description: 'Good balance of speed and cost',
-      maxTokens: 4000,
+      maxTokens: 5000,
       cost: 'medium',
       structuredOutput: false,
       contextWindow: 16384,
-      batchSize: 100
+      batchSize: 100,
+      pricing: {
+        input: '$0.0003',
+        output: '$0.0006',
+        unit: 'per 1K tokens'
+      }
+    },
+    'gpt-4o': {
+      name: 'GPT-4o',
+      description: 'Best quality with optimized performance',
+      maxTokens: 8000,
+      cost: 'high',
+      structuredOutput: true,
+      contextWindow: 128000,
+      batchSize: 100,
+      pricing: {
+        input: '$0.0025',
+        output: '$0.01',
+        unit: 'per 1K tokens'
+      }
+    },
+    'gpt-5-mini': {
+      name: 'GPT-5 Mini',
+      description: 'Lightweight and efficient for quick translations',
+      maxTokens: 6000,
+      cost: 'low',
+      structuredOutput: true,
+      contextWindow: 128000,
+      batchSize: 100,
+      pricing: {
+        input: '$0.00015',
+        output: '$0.0006',
+        unit: 'per 1K tokens'
+      }
+    },
+    'gpt-5': {
+      name: 'GPT-5',
+      description: 'Next-generation model with superior translation accuracy',
+      maxTokens: 10000,
+      cost: 'high',
+      structuredOutput: true,
+      contextWindow: 200000,
+      batchSize: 100,
+      pricing: {
+        input: '$0.005',
+        output: '$0.015',
+        unit: 'per 1K tokens'
+      }
+    },
+    'gpt-5-nano': {
+      name: 'GPT-5 Nano',
+      description: 'Ultra-fast model for basic translation tasks',
+      maxTokens: 4000,
+      cost: 'low',
+      structuredOutput: false,
+      contextWindow: 32000,
+      batchSize: 100,
+      pricing: {
+        input: '$0.0001',
+        output: '$0.0003',
+        unit: 'per 1K tokens'
+      }
     }
   },
   ANALYSIS: {
-    'gpt-4o': {
-      name: 'GPT-4o',
-      description: 'Best analysis quality',
+    'gpt-5-mini': {
+      name: 'GPT-5 Mini',
+      description: 'Efficient analysis with good accuracy',
       maxTokens: 800,
-      cost: 'high',
-      structuredOutput: true
+      cost: 'low',
+      structuredOutput: true,
+      pricing: {
+        input: '$0.00015',
+        output: '$0.0006',
+        unit: 'per 1K tokens'
+      }
     },
-    'gpt-3.5-turbo': {
-      name: 'GPT-3.5 Turbo',
-      description: 'Fast analysis',
+    'gpt-5-nano': {
+      name: 'GPT-5 Nano',
+      description: 'Ultra-fast analysis for basic content review',
       maxTokens: 400,
       cost: 'low',
-      structuredOutput: false
+      structuredOutput: false,
+      pricing: {
+        input: '$0.0001',
+        output: '$0.0003',
+        unit: 'per 1K tokens'
+      }
     }
   }
 };
 
 // Default optimized model selection
 let DEFAULT_TRANSLATION_MODEL = 'gpt-4o';
-let DEFAULT_ANALYSIS_MODEL = 'gpt-4o';
+let DEFAULT_ANALYSIS_MODEL = 'gpt-5-mini';
 
 // Export model information
 export const getAvailableModels = () => OPTIMIZED_MODELS;
@@ -231,8 +284,8 @@ export const translateBatchStructured = async (contentArray, targetLanguage = 'e
   const selectedModel = DEFAULT_TRANSLATION_MODEL;
   const modelConfig = OPTIMIZED_MODELS.TRANSLATION[selectedModel];
 
-  // Use optimized batch size
-  const BATCH_SIZE = modelConfig.batchSize || 80;
+  // Use standard batch size of 100 for all models
+  const BATCH_SIZE = 100;
   const allTranslations = [];
   
   // Pre-clean all content

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAvailableModels, getCurrentModels, setModel } from '../utils/optimizedAiService';
-import { Settings, Check, Zap, DollarSign, Clock } from 'lucide-react';
+import { Settings, Check, Zap, DollarSign, Clock, Brain, Cpu, Target } from 'lucide-react';
 
 const ModelSelector = ({ isOpen, onClose }) => {
   const [models, setModels] = useState({});
@@ -44,6 +44,25 @@ const ModelSelector = ({ isOpen, onClose }) => {
       case 'medium': return 'Medium Cost';
       case 'high': return 'High Cost';
       default: return 'Unknown';
+    }
+  };
+
+  const getCostColor = (cost) => {
+    switch (cost) {
+      case 'low': return 'text-green-600';
+      case 'medium': return 'text-yellow-600';
+      case 'high': return 'text-red-600';
+      default: return 'text-gray-600';
+    }
+  };
+
+  const getModelIcon = (modelKey) => {
+    if (modelKey.includes('gpt-5')) {
+      return <Brain className="w-4 h-4 text-purple-500" />;
+    } else if (modelKey.includes('gpt-4')) {
+      return <Cpu className="w-4 h-4 text-blue-500" />;
+    } else {
+      return <Target className="w-4 h-4 text-green-500" />;
     }
   };
 
@@ -93,21 +112,67 @@ const ModelSelector = ({ isOpen, onClose }) => {
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-gray-900">{model.name}</h4>
+                        <div className="flex items-center space-x-2">
+                          {getModelIcon(key)}
+                          <h4 className="font-medium text-gray-900">{model.name}</h4>
+                        </div>
                         <div className="flex items-center space-x-2">
                           {getCostIcon(model.cost)}
-                          <span className="text-sm text-gray-500">{getCostText(model.cost)}</span>
+                          <span className={`text-sm font-medium ${getCostColor(model.cost)}`}>{getCostText(model.cost)}</span>
                         </div>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{model.description}</p>
-                      <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                        <span>Max Tokens: {model.maxTokens.toLocaleString()}</span>
-                        {selectedTranslation === key && (
-                          <span className="flex items-center text-blue-600">
-                            <Check className="w-3 h-3 mr-1" />
-                            Current
-                          </span>
+                      
+                      {/* Enhanced model specifications */}
+                      <div className="mt-3 space-y-2">
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div className="bg-gray-50 rounded p-2">
+                            <span className="font-medium text-gray-700">Max Tokens:</span>
+                            <span className="ml-1 text-gray-600">{model.maxTokens.toLocaleString()}</span>
+                          </div>
+                          {model.contextWindow && (
+                            <div className="bg-gray-50 rounded p-2">
+                              <span className="font-medium text-gray-700">Context:</span>
+                              <span className="ml-1 text-gray-600">{model.contextWindow.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Pricing information */}
+                        {model.pricing && (
+                          <div className="bg-blue-50 rounded p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-blue-700">Pricing</span>
+                              <span className="text-xs text-blue-600">{model.pricing.unit}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-gray-600">Input:</span>
+                                <span className="ml-1 font-medium text-green-600">{model.pricing.input}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Output:</span>
+                                <span className="ml-1 font-medium text-green-600">{model.pricing.output}</span>
+                              </div>
+                            </div>
+                          </div>
                         )}
+                        
+                        {/* Model features */}
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                          {model.structuredOutput && (
+                            <span className="flex items-center">
+                              <Check className="w-3 h-3 mr-1 text-green-500" />
+                              Structured Output
+                            </span>
+                          )}
+                          {selectedTranslation === key && (
+                            <span className="flex items-center text-blue-600 font-medium">
+                              <Check className="w-3 h-3 mr-1" />
+                              Current
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </label>
@@ -141,21 +206,59 @@ const ModelSelector = ({ isOpen, onClose }) => {
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-gray-900">{model.name}</h4>
+                        <div className="flex items-center space-x-2">
+                          {getModelIcon(key)}
+                          <h4 className="font-medium text-gray-900">{model.name}</h4>
+                        </div>
                         <div className="flex items-center space-x-2">
                           {getCostIcon(model.cost)}
-                          <span className="text-sm text-gray-500">{getCostText(model.cost)}</span>
+                          <span className={`text-sm font-medium ${getCostColor(model.cost)}`}>{getCostText(model.cost)}</span>
                         </div>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{model.description}</p>
-                      <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                        <span>Max Tokens: {model.maxTokens.toLocaleString()}</span>
-                        {selectedAnalysis === key && (
-                          <span className="flex items-center text-green-600">
-                            <Check className="w-3 h-3 mr-1" />
-                            Current
-                          </span>
+                      
+                      {/* Enhanced model specifications */}
+                      <div className="mt-3 space-y-2">
+                        <div className="bg-gray-50 rounded p-2">
+                          <span className="text-xs font-medium text-gray-700">Max Tokens:</span>
+                          <span className="ml-1 text-xs text-gray-600">{model.maxTokens.toLocaleString()}</span>
+                        </div>
+                        
+                        {/* Pricing information */}
+                        {model.pricing && (
+                          <div className="bg-green-50 rounded p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-green-700">Pricing</span>
+                              <span className="text-xs text-green-600">{model.pricing.unit}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-gray-600">Input:</span>
+                                <span className="ml-1 font-medium text-green-600">{model.pricing.input}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Output:</span>
+                                <span className="ml-1 font-medium text-green-600">{model.pricing.output}</span>
+                              </div>
+                            </div>
+                          </div>
                         )}
+                        
+                        {/* Model features */}
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                          {model.structuredOutput && (
+                            <span className="flex items-center">
+                              <Check className="w-3 h-3 mr-1 text-green-500" />
+                              Structured Output
+                            </span>
+                          )}
+                          {selectedAnalysis === key && (
+                            <span className="flex items-center text-green-600 font-medium">
+                              <Check className="w-3 h-3 mr-1" />
+                              Current
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </label>
