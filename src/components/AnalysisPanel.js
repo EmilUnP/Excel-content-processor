@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Lightbulb, BarChart3, FileText, Code, Database, X, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, BarChart3, FileText, Code, Database, X, RefreshCw } from 'lucide-react';
 
 const AnalysisPanel = ({ analysis, isVisible, onClose, onReAnalyze, isLoading }) => {
   if (!isVisible || !analysis) return null;
@@ -142,17 +142,6 @@ const AnalysisPanel = ({ analysis, isVisible, onClose, onReAnalyze, isLoading })
                 </div>
               </div>
 
-              {/* Issues List */}
-              {analysis.datasetAnalysis.issues && analysis.datasetAnalysis.issues.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium text-gray-900">Issues Found:</h4>
-                  {analysis.datasetAnalysis.issues.map((issue, index) => (
-                    <div key={index} className="bg-red-50 p-3 rounded-lg border border-red-200">
-                      <div className="font-medium text-red-800">{issue}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
 
               {/* Detailed Issues */}
               {analysis.datasetAnalysis.detailedIssues && analysis.datasetAnalysis.detailedIssues.length > 0 && (
@@ -233,23 +222,6 @@ const AnalysisPanel = ({ analysis, isVisible, onClose, onReAnalyze, isLoading })
             </div>
           )}
 
-          {/* Recommendations */}
-          {analysis.recommendations && analysis.recommendations.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Lightbulb className="h-5 w-5 mr-2 text-yellow-500" />
-                Recommendations
-              </h3>
-              <div className="space-y-2">
-                {analysis.recommendations.map((recommendation, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <span className="text-gray-700">{recommendation}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="flex justify-between pt-4 border-t border-gray-200">
             <button

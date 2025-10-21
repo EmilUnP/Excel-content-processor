@@ -319,13 +319,91 @@ function OptimizedApp() {
   const handleReAnalyze = useCallback(async () => {
     if (!excelData) return;
     
+    console.log('🔄 Starting re-analysis...');
+    
     // Reset analysis state
     setIsAnalysisCompleted(false);
     setAnalysis(null);
     setShowAnalysis(false);
     
-    // Start new analysis
-    await handleBulkAnalyze();
+    // Start new analysis by calling the analysis logic directly
+    setIsLoading(true);
+    setLoadingMessage('Re-analyzing content...');
+    setTranslationProgress({ current: 0, total: 0 });
+    
+    try {
+      // Clear any existing analysis timeout
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+
+      // Set a timeout for analysis
+      analysisTimeoutRef.current = setTimeout(() => {
+        toast('Analysis taking longer than expected...', { 
+          duration: 3000,
+          icon: '⚠️',
+          style: {
+            background: '#f59e0b',
+            color: '#fff',
+          }
+        });
+      }, 5000);
+
+      // Run comprehensive dataset analysis
+      const datasetAnalysis = analyzeDataset(excelData);
+      
+      // Sample data for AI analysis (first 1000 rows for performance)
+      const sampleData = excelData.slice(0, 1000);
+      const allContent = sampleData.map(row => 
+        row.map(cell => cell.cleaned || cell.original || '').join(' ')
+      ).join(' ');
+
+      console.log('🤖 Running AI analysis...');
+      const aiAnalysis = await analyzeContent(allContent);
+      
+      // Basic data analysis
+      const dataAnalysis = {
+        totalRows: excelData.length,
+        sampleRows: sampleData.length,
+        emptyCells: excelData.flat().filter(cell => cell.isEmpty).length,
+        htmlCells: excelData.flat().filter(cell => cell.hasHtml).length,
+        entityCells: excelData.flat().filter(cell => cell.hasEntities).length,
+      };
+      
+      const comprehensiveAnalysis = {
+        dataQuality: dataAnalysis,
+        datasetAnalysis: datasetAnalysis,
+        contentQuality: aiAnalysis,
+        summary: {
+          totalRows: excelData.length,
+          totalCells: excelData.flat().length,
+          dataQualityScore: datasetAnalysis.dataQuality,
+          overallQuality: aiAnalysis.quality,
+          issuesFound: datasetAnalysis.issues.length,
+          criticalIssues: datasetAnalysis.detailedIssues.filter(i => i.severity === 'high').length,
+          // Only show meaningful counts
+          ...(dataAnalysis.emptyCells > 0 && { emptyCells: dataAnalysis.emptyCells }),
+          ...(dataAnalysis.htmlCells > 0 && { htmlCells: dataAnalysis.htmlCells }),
+          ...(dataAnalysis.entityCells > 0 && { entityCells: dataAnalysis.entityCells })
+        },
+        recommendations: [],
+        isBulkAnalysis: true
+      };
+      
+      setAnalysis(comprehensiveAnalysis);
+      setShowAnalysis(true);
+      setIsAnalysisCompleted(true);
+      
+      clearTimeout(analysisTimeoutRef.current);
+      
+      console.log('✅ Re-analysis completed successfully');
+      toast.success('Re-analysis completed!', { duration: 2000 });
+    } catch (error) {
+      console.error('Re-analysis failed:', error);
+      toast.error('Re-analysis failed: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   }, [excelData]);
 
   // Optimized bulk analysis with timeout
@@ -390,26 +468,7 @@ function OptimizedApp() {
           ...(dataAnalysis.htmlCells > 0 && { htmlCells: dataAnalysis.htmlCells }),
           ...(dataAnalysis.entityCells > 0 && { entityCells: dataAnalysis.entityCells })
         },
-        recommendations: [
-          ...aiAnalysis.suggestions,
-          ...datasetAnalysis.recommendations,
-          // Only show meaningful recommendations
-          ...(dataAnalysis.emptyCells > 0 && dataAnalysis.emptyCells < 10 ? 
-            [`Fix ${dataAnalysis.emptyCells} empty cells to improve data completeness`] : 
-            dataAnalysis.emptyCells >= 10 ? 
-            [`Critical: ${dataAnalysis.emptyCells} empty cells found - consider data validation`] : []),
-          ...(dataAnalysis.htmlCells > 0 ? 
-            [`Clean HTML formatting in ${dataAnalysis.htmlCells} cells for better readability`] : []),
-          ...(dataAnalysis.entityCells > 0 ? 
-            [`Decode HTML entities in ${dataAnalysis.entityCells} cells for proper text display`] : []),
-          // Add more actionable recommendations
-          ...(dataAnalysis.emptyCells === 0 && dataAnalysis.htmlCells === 0 && dataAnalysis.entityCells === 0 ? 
-            ['✅ Data is clean and ready for processing'] : []),
-          ...(excelData.length > 1000 ? 
-            ['Large dataset detected - consider batch processing for better performance'] : []),
-          ...(excelData.length < 10 ? 
-            ['Small dataset - ensure all required data is included'] : [])
-        ],
+        recommendations: [],
         isBulkAnalysis: true
       };
       

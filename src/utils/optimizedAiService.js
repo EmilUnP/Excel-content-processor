@@ -120,27 +120,27 @@ const OPTIMIZED_MODELS = {
     }
   },
   ANALYSIS: {
-    'gpt-5-mini': {
-      name: 'GPT-5 Mini',
-      description: 'Efficient analysis with good accuracy',
+    'gpt-4o': {
+      name: 'GPT-4o',
+      description: 'Best analysis quality with comprehensive insights',
       maxTokens: 800,
-      cost: 'low',
+      cost: 'high',
       structuredOutput: true,
       pricing: {
-        input: '$0.00015',
-        output: '$0.0006',
+        input: '$0.0025',
+        output: '$0.01',
         unit: 'per 1K tokens'
       }
     },
-    'gpt-5-nano': {
-      name: 'GPT-5 Nano',
-      description: 'Ultra-fast analysis for basic content review',
+    'gpt-3.5-turbo': {
+      name: 'GPT-3.5 Turbo',
+      description: 'Fast and efficient analysis',
       maxTokens: 400,
       cost: 'low',
       structuredOutput: false,
       pricing: {
-        input: '$0.0001',
-        output: '$0.0003',
+        input: '$0.0005',
+        output: '$0.0015',
         unit: 'per 1K tokens'
       }
     }
@@ -149,7 +149,7 @@ const OPTIMIZED_MODELS = {
 
 // Default optimized model selection
 let DEFAULT_TRANSLATION_MODEL = 'gpt-5-mini';
-let DEFAULT_ANALYSIS_MODEL = 'gpt-5-mini';
+let DEFAULT_ANALYSIS_MODEL = 'gpt-4o';
 
 // Export model information
 export const getAvailableModels = () => OPTIMIZED_MODELS;
