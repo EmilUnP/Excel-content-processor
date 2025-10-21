@@ -10,7 +10,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { parseExcelFile, exportToExcel, exportToExcelWithFormatting, clearExcelCache } from './utils/optimizedExcelParser';
 import { analyzeContent, analyzeDataset, translateBatchStructured, cancelTranslation, clearCaches } from './utils/optimizedAiService';
 import { API_ENDPOINTS } from './utils/constants';
-import { Download, Globe, Database, BarChart3, Upload, Settings, X } from 'lucide-react';
+import { Download, Globe, Database, BarChart3, Upload, Settings, X, Trash2 } from 'lucide-react';
 
 function OptimizedApp() {
   // State management with optimized initial values
@@ -252,6 +252,52 @@ function OptimizedApp() {
     } catch (error) {
       console.error('Load failed:', error);
       toast.error('Failed to load data: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Clear saved data function
+  const handleClearData = useCallback(async () => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      'Are you sure you want to clear all saved data? This action cannot be undone.\n\n' +
+      'This will delete:\n' +
+      '• All saved Excel data\n' +
+      '• All translations\n' +
+      '• All analysis results\n\n' +
+      'Click OK to proceed or Cancel to keep your data.'
+    );
+
+    if (!confirmed) {
+      toast('Clear data cancelled', { duration: 2000 });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(API_ENDPOINTS.CLEAR_DATA, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (response.ok) {
+        // Clear local state
+        setExcelData(null);
+        setAnalysis(null);
+        setShowAnalysis(false);
+        
+        // Clear caches
+        clearCaches();
+        clearExcelCache();
+        
+        toast.success('All saved data cleared successfully!', { duration: 3000 });
+      } else {
+        throw new Error('Failed to clear data');
+      }
+    } catch (error) {
+      console.error('Clear failed:', error);
+      toast.error('Failed to clear data: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -595,60 +641,99 @@ function OptimizedApp() {
               </div>
             </div>
             {excelData && (
-              <div className="flex flex-wrap gap-3 justify-center lg:justify-end">
-                <button
-                  onClick={handleBulkAnalyze}
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 rounded-xl hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
-                >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Analyze
-                </button>
-                <button
-                  onClick={() => setShowLanguageSelector(true)}
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2.5 rounded-xl hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
-                >
-                  <Globe className="h-4 w-4 mr-2" />
-                  Translate
-                </button>
-                <button
-                  onClick={handleSaveData}
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-2.5 rounded-xl hover:from-emerald-600 hover:to-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
-                >
-                  <Database className="h-4 w-4 mr-2" />
-                  Save
-                </button>
-                <button
-                  onClick={handleLoadData}
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-purple-500 to-violet-500 text-white px-4 py-2.5 rounded-xl hover:from-purple-600 hover:to-violet-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Load
-                </button>
-                <button
-                  onClick={handleExportOriginal}
-                  className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-4 py-2.5 rounded-xl hover:from-teal-600 hover:to-cyan-600 flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Clean
-                </button>
-                <button
-                  onClick={handleExportFormatted}
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-2.5 rounded-xl hover:from-orange-600 hover:to-amber-600 flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Formatted
-                </button>
-                <button
-                  onClick={() => setShowModelSelector(true)}
-                  className="bg-gradient-to-r from-slate-500 to-gray-500 text-white px-4 py-2.5 rounded-xl hover:from-slate-600 hover:to-gray-600 flex items-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Models
-                </button>
+              <div className="w-full lg:w-auto">
+                {/* Action Buttons - Organized in Groups */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  
+                  {/* AI Operations Group */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">AI Operations</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={handleBulkAnalyze}
+                        disabled={isLoading}
+                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 rounded-xl hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Analyze
+                      </button>
+                      <button
+                        onClick={() => setShowLanguageSelector(true)}
+                        disabled={isLoading}
+                        className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-3 rounded-xl hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      >
+                        <Globe className="h-4 w-4 mr-2" />
+                        Translate
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Data Management Group */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Data Management</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={handleSaveData}
+                        disabled={isLoading}
+                        className="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-3 rounded-xl hover:from-emerald-600 hover:to-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      >
+                        <Database className="h-4 w-4 mr-2" />
+                        Save
+                      </button>
+                      <button
+                        onClick={handleLoadData}
+                        disabled={isLoading}
+                        className="w-full bg-gradient-to-r from-purple-500 to-violet-500 text-white px-4 py-3 rounded-xl hover:from-purple-600 hover:to-violet-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Load
+                      </button>
+                      <button
+                        onClick={handleClearData}
+                        disabled={isLoading}
+                        className="w-full bg-gradient-to-r from-red-500 to-rose-500 text-white px-4 py-3 rounded-xl hover:from-red-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Clear Data
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Export Operations Group */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Export Options</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={handleExportOriginal}
+                        className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-4 py-3 rounded-xl hover:from-teal-600 hover:to-cyan-600 flex items-center justify-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Clean
+                      </button>
+                      <button
+                        onClick={handleExportFormatted}
+                        className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-amber-600 flex items-center justify-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Formatted
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Settings Group */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Settings</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setShowModelSelector(true)}
+                        className="w-full bg-gradient-to-r from-slate-500 to-gray-500 text-white px-4 py-3 rounded-xl hover:from-slate-600 hover:to-gray-600 flex items-center justify-center text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Models
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

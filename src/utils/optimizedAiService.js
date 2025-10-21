@@ -148,7 +148,7 @@ const OPTIMIZED_MODELS = {
 };
 
 // Default optimized model selection
-let DEFAULT_TRANSLATION_MODEL = 'gpt-4o';
+let DEFAULT_TRANSLATION_MODEL = 'gpt-5-mini';
 let DEFAULT_ANALYSIS_MODEL = 'gpt-5-mini';
 
 // Export model information
