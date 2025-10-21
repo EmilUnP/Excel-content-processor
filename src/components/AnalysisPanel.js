@@ -1,7 +1,7 @@
 import React from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Lightbulb, BarChart3, FileText, Code, Database, X } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Lightbulb, BarChart3, FileText, Code, Database, X, RefreshCw } from 'lucide-react';
 
-const AnalysisPanel = ({ analysis, isVisible, onClose }) => {
+const AnalysisPanel = ({ analysis, isVisible, onClose, onReAnalyze, isLoading }) => {
   if (!isVisible || !analysis) return null;
 
   const getQualityIcon = (quality) => {
@@ -251,7 +251,15 @@ const AnalysisPanel = ({ analysis, isVisible, onClose }) => {
             </div>
           )}
 
-          <div className="flex justify-end pt-4 border-t border-gray-200">
+          <div className="flex justify-between pt-4 border-t border-gray-200">
+            <button
+              onClick={onReAnalyze}
+              disabled={isLoading}
+              className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center space-x-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>{isLoading ? 'Re-analyzing...' : 'Re-analyze Data'}</span>
+            </button>
             <button
               onClick={onClose}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"

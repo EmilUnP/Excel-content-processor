@@ -27,6 +27,7 @@ function OptimizedApp() {
   const [loadingMessage, setLoadingMessage] = useState('Processing data...');
   const [translationProgress, setTranslationProgress] = useState({ current: 0, total: 0 });
   const [sessionId, setSessionId] = useState(null);
+  const [isAnalysisCompleted, setIsAnalysisCompleted] = useState(false);
 
   // Refs for performance optimization
   const translationAbortController = useRef(null);
@@ -189,7 +190,14 @@ function OptimizedApp() {
       }
       return newData;
     });
-  }, []);
+    
+    // Reset analysis state when data is manually edited
+    if (isAnalysisCompleted) {
+      setIsAnalysisCompleted(false);
+      setAnalysis(null);
+      setShowAnalysis(false);
+    }
+  }, [isAnalysisCompleted]);
 
   // Optimized cell deletion
   const handleCellDelete = useCallback((rowIndex, colIndex) => {
@@ -242,6 +250,10 @@ function OptimizedApp() {
         const result = await response.json();
         if (result.success && result.data) {
           setExcelData(result.data);
+          // Reset analysis state when loading new data
+          setIsAnalysisCompleted(false);
+          setAnalysis(null);
+          setShowAnalysis(false);
           toast.success('Data loaded successfully!', { duration: 2000 });
         } else {
           toast('No saved data found', { duration: 2000 });
@@ -303,6 +315,19 @@ function OptimizedApp() {
     }
   }, []);
 
+  // Re-analyze function for use in AnalysisPanel
+  const handleReAnalyze = useCallback(async () => {
+    if (!excelData) return;
+    
+    // Reset analysis state
+    setIsAnalysisCompleted(false);
+    setAnalysis(null);
+    setShowAnalysis(false);
+    
+    // Start new analysis
+    await handleBulkAnalyze();
+  }, [excelData]);
+
   // Optimized bulk analysis with timeout
   const handleBulkAnalyze = useCallback(async () => {
     if (!excelData) return;
@@ -319,7 +344,14 @@ function OptimizedApp() {
     try {
       // Set a timeout for analysis
       analysisTimeoutRef.current = setTimeout(() => {
-        toast.warning('Analysis taking longer than expected...', { duration: 3000 });
+        toast('Analysis taking longer than expected...', { 
+          duration: 3000,
+          icon: '⚠️',
+          style: {
+            background: '#f59e0b',
+            color: '#fff',
+          }
+        });
       }, 5000);
 
       // Run comprehensive dataset analysis
@@ -347,28 +379,43 @@ function OptimizedApp() {
         datasetAnalysis: datasetAnalysis,
         contentQuality: aiAnalysis,
         summary: {
-          totalCells: dataStats.totalCells,
-          emptyCells: dataAnalysis.emptyCells,
-          htmlCells: dataAnalysis.htmlCells,
-          entityCells: dataAnalysis.entityCells,
-          overallQuality: aiAnalysis.quality,
           totalRows: excelData.length,
+          totalCells: dataStats.totalCells,
           dataQualityScore: datasetAnalysis.dataQuality,
-          totalIssues: datasetAnalysis.issues.length,
-          criticalIssues: datasetAnalysis.detailedIssues.filter(i => i.severity === 'high').length
+          overallQuality: aiAnalysis.quality,
+          issuesFound: datasetAnalysis.issues.length,
+          criticalIssues: datasetAnalysis.detailedIssues.filter(i => i.severity === 'high').length,
+          // Only show meaningful counts
+          ...(dataAnalysis.emptyCells > 0 && { emptyCells: dataAnalysis.emptyCells }),
+          ...(dataAnalysis.htmlCells > 0 && { htmlCells: dataAnalysis.htmlCells }),
+          ...(dataAnalysis.entityCells > 0 && { entityCells: dataAnalysis.entityCells })
         },
         recommendations: [
           ...aiAnalysis.suggestions,
           ...datasetAnalysis.recommendations,
-          ...(dataAnalysis.emptyCells > 0 ? [`${dataAnalysis.emptyCells} empty cells need attention`] : []),
-          ...(dataAnalysis.htmlCells > 0 ? [`${dataAnalysis.htmlCells} cells contain HTML`] : []),
-          ...(dataAnalysis.entityCells > 0 ? [`${dataAnalysis.entityCells} cells contain HTML entities`] : [])
+          // Only show meaningful recommendations
+          ...(dataAnalysis.emptyCells > 0 && dataAnalysis.emptyCells < 10 ? 
+            [`Fix ${dataAnalysis.emptyCells} empty cells to improve data completeness`] : 
+            dataAnalysis.emptyCells >= 10 ? 
+            [`Critical: ${dataAnalysis.emptyCells} empty cells found - consider data validation`] : []),
+          ...(dataAnalysis.htmlCells > 0 ? 
+            [`Clean HTML formatting in ${dataAnalysis.htmlCells} cells for better readability`] : []),
+          ...(dataAnalysis.entityCells > 0 ? 
+            [`Decode HTML entities in ${dataAnalysis.entityCells} cells for proper text display`] : []),
+          // Add more actionable recommendations
+          ...(dataAnalysis.emptyCells === 0 && dataAnalysis.htmlCells === 0 && dataAnalysis.entityCells === 0 ? 
+            ['✅ Data is clean and ready for processing'] : []),
+          ...(excelData.length > 1000 ? 
+            ['Large dataset detected - consider batch processing for better performance'] : []),
+          ...(excelData.length < 10 ? 
+            ['Small dataset - ensure all required data is included'] : [])
         ],
         isBulkAnalysis: true
       };
       
       setAnalysis(comprehensiveAnalysis);
       setShowAnalysis(true);
+      setIsAnalysisCompleted(true);
       
       clearTimeout(analysisTimeoutRef.current);
     } catch (error) {
@@ -527,6 +574,11 @@ function OptimizedApp() {
       console.log('✅ Data updated successfully');
       setExcelData(translatedData);
       
+      // Reset analysis state after translation
+      setIsAnalysisCompleted(false);
+      setAnalysis(null);
+      setShowAnalysis(false);
+      
       // Stop session after successful completion
       await stopSession();
       
@@ -647,7 +699,7 @@ function OptimizedApp() {
                   
                   {/* AI Operations Group */}
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">AI Operations</h3>
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 text-center">AI Operations</h3>
                     <div className="space-y-2">
                       <button
                         onClick={handleBulkAnalyze}
@@ -670,7 +722,7 @@ function OptimizedApp() {
 
                   {/* Data Management Group */}
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Data Management</h3>
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 text-center">Data Management</h3>
                     <div className="space-y-2">
                       <button
                         onClick={handleSaveData}
@@ -701,7 +753,7 @@ function OptimizedApp() {
 
                   {/* Export Operations Group */}
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Export Options</h3>
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 text-center">Export Options</h3>
                     <div className="space-y-2">
                       <button
                         onClick={handleExportOriginal}
@@ -722,7 +774,7 @@ function OptimizedApp() {
 
                   {/* Settings Group */}
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Settings</h3>
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 text-center">Settings</h3>
                     <div className="space-y-2">
                       <button
                         onClick={() => setShowModelSelector(true)}
@@ -861,6 +913,8 @@ function OptimizedApp() {
         analysis={analysis}
         isVisible={showAnalysis}
         onClose={() => setShowAnalysis(false)}
+        onReAnalyze={handleReAnalyze}
+        isLoading={isLoading}
       />
 
       {/* Language Selector */}
